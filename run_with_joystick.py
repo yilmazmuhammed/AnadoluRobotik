@@ -1,4 +1,4 @@
-from joystick import Joystick
+from denemeler.joystick.my import Joystick
 from motors import RovMovement
 
 if __name__ == '__main__':
@@ -7,19 +7,20 @@ if __name__ == '__main__':
     joystick = Joystick()
     try:
         while True:
-            z_guc = None
+            joy_ret = joystick.get_data()
+            z_guc = joy_ret["z_axis"]
             if z_guc < 0:
                 rov_movement.go_down(100)
             elif z_guc > 0:
                 rov_movement.go_up(100)
 
-            z_ekseninde_donme_gucu = None
+            z_ekseninde_donme_gucu = joy_ret["turn_itself"]
             if z_ekseninde_donme_gucu < 0:
                 rov_movement.turn_left(100)
             elif z_ekseninde_donme_gucu > 0:
                 rov_movement.turn_right(100)
 
-            xy_aci, xy_guc = None, None
+            xy_aci, xy_guc = joy_ret["xy_plane"]["angel"], joy_ret["xy_plane"]["magnitude"]
             rov_movement.go_xy(xy_guc, xy_aci)
 
             robotik_kol = None
