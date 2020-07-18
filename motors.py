@@ -70,7 +70,7 @@ class Motor:
 
 
 class RovMovement:
-    def __init__(self, xy_lf_pin, xy_rf_pin, xy_lb_pin, xy_rb_pin, z_lf_pin, z_rf_pin, z_lb_pin, z_rb_pin):
+    def __init__(self, xy_lf_pin, xy_rf_pin, xy_lb_pin, xy_rb_pin, z_lf_pin, z_rf_pin, z_lb_pin, z_rb_pin, arm_pin):
         self.xy_lf = Motor(xy_lf_pin)
         self.xy_rf = Motor(xy_rf_pin)
         self.xy_lb = Motor(xy_lb_pin)
@@ -79,9 +79,12 @@ class RovMovement:
         self.z_rf = Motor(z_rf_pin)
         self.z_lb = Motor(z_lb_pin)
         self.z_rb = Motor(z_rb_pin)
+        self.arm = Motor(arm_pin)
         self.z_motors_list = [self.z_lf, self.z_rf, self.z_lb, self.z_rb]
         self.xy_motors_list = [self.xy_lf, self.xy_rf, self.xy_lb, self.xy_rb]
         self.all_motors_list = self.z_motors_list + self.xy_motors_list
+        self.arm_status = False
+        self.open_arm()
         sleep(2)
 
     def go_up(self, power):
@@ -134,6 +137,20 @@ class RovMovement:
         self.xy_lf.run_bidirectional(pow_lf)
         self.xy_lb.run_bidirectional(pow_lb)
         self.xy_rb.run_bidirectional(pow_rb)
+
+    def open_arm(self):
+        self.arm.run_clockwise(100)
+        self.arm_status = True
+
+    def close_arm(self):
+        self.arm.run_counterclockwise(100)
+        self.arm_status = False
+
+    def toggle_arm(self):
+        if self.arm_status:
+            self.close_arm()
+        else:
+            self.open_arm()
 
     def run_all_motors_cw(self, power):
         for motor in self.all_motors_list:
