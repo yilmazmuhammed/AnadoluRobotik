@@ -31,6 +31,7 @@ class Lidar:
                         # else:
                         # raise ValueError('distance error: %d' % distance)
                         # i = i + 9
+        return None, None
 
     def close(self):
         pi.bb_serial_read_close(self.pin)
