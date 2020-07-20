@@ -2,7 +2,6 @@ import pygame
 import os
 import numpy as np
 import math
-#import motors
 
 class TextPrint(object):
     def __init__(self):
@@ -24,15 +23,9 @@ class TextPrint(object):
 class Joystick:
 
     def __init__(self):
-        #print(pygame())
-        #self.pygame_object = pygame.init()
-        #print(type(self.pygame_object))
         pygame.init()
-        #print(self.pygame_object)
         self.done = False
-        #clock = self.pygame_object.time.Clock()
         clock = pygame.time.Clock()
-        #self.pygame_object.joystick.init()
         pygame.joystick.init()
         self.dic_initializer()
         self.x = self.y = 0
@@ -165,13 +158,14 @@ if __name__ == '__main__':
     while Joy_obj.done:
 
         Joy_obj.while_initializer()
-
         joystick_count = pygame.joystick.get_count()
+
         for i in range(joystick_count):
             Joy_obj.for_initializer()
             Joy_obj.joysticks()
             Joy_obj.buttons()
             print(Joy_obj.ret_dict)
-        clock.tick(20)
+
+        self.clock.tick(20)
 
     Joy_obj.quit()
