@@ -66,10 +66,10 @@ class Joystick:
 
         if math.atan(y/x)<1:
             self.ret_dict["xy_plane"]["angel"] = angel*(180/np.pi)
-            self.ret_dict["xy_plane"]["magnitude"] = (x**2+y**2)**(1/2)*math.cos(angel)#*acos(angel)
+            self.ret_dict["xy_plane"]["magnitude"] = x
         else:
             self.ret_dict["xy_plane"]["angel"] = angel*(180/np.pi)
-            self.ret_dict["xy_plane"]["magnitude"] = (x**2+y**2)**(1/2)*math.sin(angel)#*asin(angel)
+            self.ret_dict["xy_plane"]["magnitude"] = y
 
     def for_initializer(self):
         #print(type(pygame.joystick.Joystick(i)))
@@ -165,10 +165,13 @@ if __name__ == '__main__':
     while Joy_obj.done:
 
         Joy_obj.while_initializer()
-        Joy_obj.for_initializer()
-        Joy_obj.joysticks()
-        Joy_obj.buttons()
-        print(Joy_obj.ret_dict)
+
+        joystick_count = pygame.joystick.get_count()
+        for i in range(joystick_count):
+            Joy_obj.for_initializer()
+            Joy_obj.joysticks()
+            Joy_obj.buttons()
+            print(Joy_obj.ret_dict)
         clock.tick(20)
 
     Joy_obj.quit()
