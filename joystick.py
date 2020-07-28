@@ -2,43 +2,35 @@ import pygame
 import os
 import numpy as np
 import math
-#import motors
+from threading import Thread
 
-class TextPrint(object):
-    def __init__(self):
-        self.reset()
-        self.font = pygame.font.Font(None, 20)
-    def tprint(self, screen, textString):
-        textBitmap = self.font.render(textString, True, BLACK)
-        screen.blit(textBitmap, (self.x, self.y))
-        self.y += self.line_height
-    def reset(self):
-        self.x = 10
-        self.y = 10
-        self.line_height = 15
-    def indent(self):
-        self.x += 10
-    def unindent(self):
-        self.x -= 10
 
-class Joystick:
+class SharedOutput():
 
     def __init__(self):
-        #print(pygame())
-        #self.pygame_object = pygame.init()
-        #print(type(self.pygame_object))
-        pygame.init()
-        #print(self.pygame_object)
-        self.done = False
-        #clock = self.pygame_object.time.Clock()
-        clock = pygame.time.Clock()
-        #self.pygame_object.joystick.init()
-        pygame.joystick.init()
-        self.dic_initializer()
-        self.x = self.y = 0
+        self.ret_dict = {"xy_plane": {"angel":0,            #jotstick çubuğunun ileri geri ve sağa sola ittirilmesi
+                                      "magnitude":0},
+                        "z_axes":0,                         #5 ve 3 numaralı butonlara basılması durumu
+                        "turn_itself":0}                    #joystick çubuğunun kendi eksininde döndürülmesi hareketi
+        self.x = 0
+        self.y = 0
+
+    def update_xy(self):
+        self.angel_calculator()
+
+    def update_z(self, z):
+        self.ret_dict["z_axes"] = z
+
+    def update_turn(self, turn):
+        self.ret_dict["turn_itself"] = turn
+
+    def set_x(self, x):
+        self.x = x
+
+    def set_y(self, y):
+        self.y = y
 
     def angel_calculator(self):
-
         x = self.x
         y = self.y
 
@@ -64,51 +56,57 @@ class Joystick:
             else:
                 angel = np.pi*3/2
 
-        if math.atan(y/x)<1:
+        if x==0:
             self.ret_dict["xy_plane"]["angel"] = angel*(180/np.pi)
-            self.ret_dict["xy_plane"]["magnitude"] = (x**2+y**2)**(1/2)*math.cos(angel)#*acos(angel)
+            self.ret_dict["xy_plane"]["magnitude"] = y
+        elif math.atan(y/x)<1:
+            self.ret_dict["xy_plane"]["angel"] = angel*(180/np.pi)
+            self.ret_dict["xy_plane"]["magnitude"] = x
         else:
             self.ret_dict["xy_plane"]["angel"] = angel*(180/np.pi)
-            self.ret_dict["xy_plane"]["magnitude"] = (x**2+y**2)**(1/2)*math.sin(angel)#*asin(angel)
+            self.ret_dict["xy_plane"]["magnitude"] = y
 
-    def for_initializer(self):
-        #print(type(pygame.joystick.Joystick(i)))
+class Joystick:
+
+    def __init__(self):
+        self.shared_obj = SharedOutput()
+        pygame.init()
+        self.done = False
+        self.clock = pygame.time.Clock()
+        pygame.joystick.init()
+        #self.button_pressed = 0
+        #self.dic_initializer()
+
+    def for_initializer(self, i):
+        #print("asdsf")
+        #print(i)
+        i = int(i)
         self.joystick = pygame.joystick.Joystick(i)
         self.joystick.init()
 
         self.name = self.joystick.get_name()
         self.axes = self.joystick.get_numaxes()
 
+        self.i = i
+
     def while_initializer(self):
         for event in pygame.event.get():    
             if event.type == pygame.QUIT:
                 done = True
             elif event.type == pygame.JOYBUTTONDOWN:
+                #self.button_pressed = 1
                 print("Joystick button pressed.")
             elif event.type == pygame.JOYBUTTONUP:
+                #self.button_pressed = 0
                 print("Joystick button released.")
 
-    def dic_initializer(self):
-        self.ret_dict = {"xy_plane": {"angel":0,            #jotstick çubuğunun ileri geri ve sağa sola ittirilmesi
-                                      "magnitude":0},
-                        "z_axes":0,                         #5 ve 3 numaralı butonlara basılması durumu
-                        "turn_itself":0}                    #joystick çubuğunun kendi eksininde döndürülmesi hareketi
-
-    def is_button_press(self):
-        for event in pygame.event.get():
-        
-            if event.type == pygame.QUIT:
-                done = True
-            elif event.type == pygame.JOYBUTTONDOWN:
-                print("Joystick button pressed.")
-            elif event.type == pygame.JOYBUTTONUP:
-                print("Joystick button released.")
+        self.joystick_count = pygame.joystick.get_count()
 
     def joysticks(self):
 
         for i in range(pygame.joystick.get_count()):
 
-            joystick = pygame.joystick.Joystick(i)
+            joystick = pygame.joystick.Joystick(self.i)
             joystick.init()
 
             name = joystick.get_name()
@@ -122,37 +120,42 @@ class Joystick:
                         print("kol sola doğru:" + str(abs(axis)) + "değeri kadar itiliyor.")                
                     if(axis>0):
                         print("kol sağa doğru:" + str(abs(axis)) + "değeri kadar itiliyor.")
-                    self.x = axis
+                    #self.x = axis
+                    self.shared_obj.set_x(axis)
                 
                 elif(i==1):
                     if(axis<0):
                         print("kol ileri doğru:" + str(abs(axis)) + "değeri kadar itiliyor.")                
                     if(axis>0):
                         print("kol geri doğru:" + str(abs(axis)) + "değeri kadar itiliyor.")
-                    self.y = axis                
+                    #self.y = axis
+                    self.shared_obj.set_y( axis)                
 
                 elif(i==2):
                     if(axis<0):
                         print("kol saat yönünün tersine doğru:" + str(abs(axis)) + "değeri kadar itiliyor.")                
                     if(axis>0):
                         print("kol saat yönününe doğru:" + str(abs(axis)) + "değeri kadar itiliyor.")
-                    self.ret_dict["turn_itself"] = axis
+                    self.shared_obj.update_turn( axis)
                     
-            angel_calculator(self)
+            self.shared_obj.update_xy()
 
     def buttons(self):
 
-        joystick = pygame.joystick.Joystick(i)
+        joystick = pygame.joystick.Joystick(self.i)
         buttons = joystick.get_numbuttons()
 
         for i in range(buttons):            
             button = joystick.get_button(i)
-            if(i==5):
-                print("z ekseninde yukarı çıkılıyor")
-                self.ret_dict["z_axes"] = 1
-            if(i==3):
-                print("z ekseninde aşağı iniliyor")
-                self.ret_dict["z_axes"] = -1
+            if button>0:
+                if(i==5):
+                    print("z ekseninde yukarı çıkılıyor")
+                    #self.ret_dict["z_axes"] = 1
+                    self.shared_obj.update_z(1)
+                if(i==3):
+                    print("z ekseninde aşağı iniliyor")
+                    #self.ret_dict["z_axes"] = -1
+                    self.shared_obj.update_z(1)
 
     def quit(self):
         pygame.quit()
@@ -161,14 +164,32 @@ class Joystick:
 if __name__ == '__main__':
 
     Joy_obj = Joystick()
+    print(Joy_obj.done)
 
-    while Joy_obj.done:
+    while 0==Joy_obj.done:
+        #print("1asd")
+        t1 = Thread(target=Joy_obj.while_initializer)#, args=(scriptA + argumentsA))
+        #Joy_obj.while_initializer()
+        t1.start()
+        #print(joystick_count)
 
-        Joy_obj.while_initializer()
-        Joy_obj.for_initializer()
-        Joy_obj.joysticks()
-        Joy_obj.buttons()
-        print(Joy_obj.ret_dict)
-        clock.tick(20)
+        for i in range(Joy_obj.joystick_count):
+            t1.join()
+            t2 = Thread(target=Joy_obj.for_initializer, args=(str(i)))
+            t2.start()
+            t2.join()
+            #Joy_obj.for_initializer(i) # thread yap done() ile kontrol et olup olmadığını sonra diğerlerini threadle
+            t3 = Thread(target=Joy_obj.joysticks)#, args=(str(i)))
+            t4 = Thread(target=Joy_obj.buttons)#, args=(str(i)))
+            t3.start()
+            t4.start()
+            t3.join()
+            t4.join()
+            #Joy_obj.joysticks()
+            #Joy_obj.buttons()
+            #if Joy_obj.button_pressed == 1:
+            print(Joy_obj.shared_obj.ret_dict)
+
+        Joy_obj.clock.tick(20)
 
     Joy_obj.quit()
