@@ -18,14 +18,14 @@ class ContinuousRotationServo:
     def __init__(self, kit, pin):
         print("init")
         self.control = None
-        self.kit=kit
+        self.kit = kit
         self.pin = pin
         self.motor_initialize()
 
     def motor_initialize(self):
-        #self.control = kit.continuous_servo[self.pin]
-        for i in range(0,10):
-            print("başlangıç",i)
+        # self.control = kit.continuous_servo[self.pin]
+        for i in range(0, 10):
+            print("başlangıç", i)
             self.run_bidirectional(i)
             sleep(0.1)
         pass
@@ -36,8 +36,6 @@ class ContinuousRotationServo:
                       positive values​make it work forward.
         :return:
         """
-        print("cp", power)
-#        power *= -1
         self.kit.continuous_servo[self.pin].throttle = power / 100
 
     def run_clockwise(self, power):
@@ -46,7 +44,6 @@ class ContinuousRotationServo:
         :param power:
         :return:
         """
-        print("rc")
         if not 0 <= power <= 100:
             raise NotInCorrectRange("Power must be between 0 and 100.")
         return self.change_power(power)
@@ -57,13 +54,11 @@ class ContinuousRotationServo:
         :param power:
         :return:
         """
-        print("rcc")
         if not 0 <= power <= 100:
             raise NotInCorrectRange("Power must be between 0 and 100.")
         return self.change_power(-power)
 
     def run_bidirectional(self, power):
-        print("rb")
         if power >= 0:
             self.run_clockwise(power)
         else:
@@ -89,4 +84,3 @@ if __name__ == '__main__':
         print(i)
         motor.run_bidirectional(-i)
         sleep(0.1)
-

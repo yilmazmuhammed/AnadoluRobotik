@@ -22,15 +22,14 @@ class ContinuousRotationServo:
 
     def motor_initialize(self):
         self.control = kit.continuous_servo[self.pin]
-        self.change_power(0)
+        self._change_power(0)
 
-    def change_power(self, power):
+    def _change_power(self, power):
         """
         :param power: this parameter takes a value between -100 and 100. Negative values​make it work backward,
                       positive values​make it work forward.
         :return:
         """
-        power *= -1
         self.control.throttle = power / 100
 
     def run_clockwise(self, power):
@@ -41,7 +40,7 @@ class ContinuousRotationServo:
         """
         if not 0 <= power <= 100:
             raise NotInCorrectRange("Power must be between 0 and 100.")
-        return self.change_power(power)
+        return self._change_power(power)
 
     def run_counterclockwise(self, power):
         """
@@ -51,7 +50,7 @@ class ContinuousRotationServo:
         """
         if not 0 <= power <= 100:
             raise NotInCorrectRange("Power must be between 0 and 100.")
-        return self.change_power(-power)
+        return self._change_power(-power)
 
     def run_bidirectional(self, power):
         if power >= 0:
@@ -60,7 +59,7 @@ class ContinuousRotationServo:
             self.run_counterclockwise(-power)
 
     def stop(self):
-        return self.change_power(0)
+        return self._change_power(0)
 
 
 class StandardServo:
@@ -99,7 +98,16 @@ class RovMovement:
         self.all_motors_list = self.z_motors_list + self.xy_motors_list
         self.arm_status = False
         self.open_arm()
+        self._initialize_motors()
         sleep(2)
+
+    def _initialize_motors(self):
+        print("All motors initializing...")
+        for i in list(range(0, 100)) + list(range(100, -100, -1)) + list(range(-100, 1)):
+            for motor in self.all_motors_list:
+                motor.run_bidirectional(i)
+                sleep(0.05)
+        print("All motors initialized...")
 
     def go_up(self, power):
         power_per_motor = power / 4
@@ -209,6 +217,7 @@ def motor_z_control(que):
             rov_movement.go_up(abs(power))
         else:
             rov_movement.go_down(abs(power))
+
 
 if __name__ == '__main__':
     rov_movement = RovMovement(xy_lf_pin=0, xy_rf_pin=1, xy_lb_pin=2, xy_rb_pin=3,
