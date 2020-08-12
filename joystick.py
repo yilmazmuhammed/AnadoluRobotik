@@ -123,7 +123,9 @@ class Joystick:
                     # if(axis>0):
                     #     print("kol sağa doğru:" + str(abs(axis)) + "değeri kadar itiliyor.")
                     # #self.x = axis
-                    self.shared_obj.set_x(axis)
+                    self.shared_obj.set_y(-1*axis)
+                    #self.shared_obj.set_x(axis)
+                    #print("x: " + str(axis))
 
                 elif(i==1):
                     # if(axis<0):
@@ -131,7 +133,9 @@ class Joystick:
                     # if(axis>0):
                     #     print("kol geri doğru:" + str(abs(axis)) + "değeri kadar itiliyor.")
                     # #self.y = axis
-                    self.shared_obj.set_y( axis)
+                    self.shared_obj.set_x(axis)
+                    #self.shared_obj.set_y( axis)
+                    #print("y: " + str(axis))
 
                 elif(i==2):
                     # if(axis<0):
