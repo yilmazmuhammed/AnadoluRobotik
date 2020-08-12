@@ -31,7 +31,6 @@ class ContinuousRotationServo:
         :return:
         """
         power *= -1
-        power = power * self.power_multiplier
         self.control.throttle = power / 100
 
     def run_clockwise(self, power):

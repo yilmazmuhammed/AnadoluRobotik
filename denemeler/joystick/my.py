@@ -1,4 +1,5 @@
 import math
+from time import sleep
 
 import pygame
 
@@ -72,3 +73,4 @@ if __name__ == '__main__':
     j = Joystick()
     while True:
         print(j.get_data())
+        sleep(0.1)
