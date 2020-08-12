@@ -37,6 +37,15 @@ class Lidar:
         pi.bb_serial_read_close(self.pin)
 
 
+def lidar_control(que):
+    lidars = {"front": Lidar(0), "left": Lidar(0), "bottom": Lidar(0), "right": Lidar(0)}
+    while True:
+        values = {}
+        for key in lidars:
+            values[key] = lidars[key].get_data()
+        que.put(values)
+
+
 if __name__ == '__main__':
     lidars = [Lidar(0), Lidar(0), Lidar(0), Lidar(0)]
     try:
@@ -44,7 +53,7 @@ if __name__ == '__main__':
             for i in range(len(lidars)):
                 sleep(0.05)
                 distance, strength = lidars[i].get_data()
-                print("Lidar"+str(i)+":", distance, strength, end='\t')
+                print("Lidar" + str(i) + ":", distance, strength, end='\t')
             print("")
 
     except KeyboardInterrupt:

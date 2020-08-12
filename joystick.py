@@ -1,3 +1,5 @@
+from time import sleep
+
 import pygame
 import os
 import numpy as np
@@ -90,7 +92,7 @@ class Joystick:
         self.i = i
 
     def while_initializer(self):
-        for event in pygame.event.get():    
+        for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 done = True
             elif event.type == pygame.JOYBUTTONDOWN:
@@ -116,28 +118,31 @@ class Joystick:
                 axis = joystick.get_axis(i)
 
                 if(i==0):
-                    if(axis<0):
-                        print("kol sola doğru:" + str(abs(axis)) + "değeri kadar itiliyor.")                
-                    if(axis>0):
-                        print("kol sağa doğru:" + str(abs(axis)) + "değeri kadar itiliyor.")
-                    #self.x = axis
+                    # if(axis<0):
+                    #     print("kol sola doğru:" + str(abs(axis)) + "değeri kadar itiliyor.")
+                    # if(axis>0):
+                    #     print("kol sağa doğru:" + str(abs(axis)) + "değeri kadar itiliyor.")
+                    # #self.x = axis
                     self.shared_obj.set_x(axis)
-                
+
                 elif(i==1):
-                    if(axis<0):
-                        print("kol ileri doğru:" + str(abs(axis)) + "değeri kadar itiliyor.")                
-                    if(axis>0):
-                        print("kol geri doğru:" + str(abs(axis)) + "değeri kadar itiliyor.")
-                    #self.y = axis
-                    self.shared_obj.set_y( axis)                
+                    # if(axis<0):
+                    #     print("kol ileri doğru:" + str(abs(axis)) + "değeri kadar itiliyor.")
+                    # if(axis>0):
+                    #     print("kol geri doğru:" + str(abs(axis)) + "değeri kadar itiliyor.")
+                    # #self.y = axis
+                    self.shared_obj.set_y( axis)
 
                 elif(i==2):
-                    if(axis<0):
-                        print("kol saat yönünün tersine doğru:" + str(abs(axis)) + "değeri kadar itiliyor.")                
-                    if(axis>0):
-                        print("kol saat yönününe doğru:" + str(abs(axis)) + "değeri kadar itiliyor.")
+                    # if(axis<0):
+                    #     print("kol saat yönünün tersine doğru:" + str(abs(axis)) + "değeri kadar itiliyor.")
+                    # if(axis>0):
+                    #     print("kol saat yönününe doğru:" + str(abs(axis)) + "değeri kadar itiliyor.")
                     self.shared_obj.update_turn( axis)
-                    
+
+                elif(i==3):
+                    self.shared_obj.update_z(round(-axis, 3))
+
             self.shared_obj.update_xy()
 
     def buttons(self):
@@ -145,7 +150,7 @@ class Joystick:
         joystick = pygame.joystick.Joystick(self.i)
         buttons = joystick.get_numbuttons()
 
-        for i in range(buttons):            
+        for i in range(buttons):
             button = joystick.get_button(i)
             if button>0:
                 if(i==5):
@@ -160,6 +165,41 @@ class Joystick:
     def quit(self):
         pygame.quit()
 
+
+
+def joystick_control(que):
+
+    Joy_obj = Joystick()
+    print(Joy_obj.done)
+
+    while 0==Joy_obj.done:
+        #print("1asd")
+        t1 = Thread(target=Joy_obj.while_initializer)#, args=(scriptA + argumentsA))
+        #Joy_obj.while_initializer()
+        t1.start()
+        #print(joystick_count)
+
+        for i in range(Joy_obj.joystick_count):
+            t1.join()
+            t2 = Thread(target=Joy_obj.for_initializer, args=(str(i)))
+            t2.start()
+            t2.join()
+            #Joy_obj.for_initializer(i) # thread_S yap done() ile kontrol et olup olmadığını sonra diğerlerini threadle
+            t3 = Thread(target=Joy_obj.joysticks)#, args=(str(i)))
+            t4 = Thread(target=Joy_obj.buttons)#, args=(str(i)))
+            t3.start()
+            t4.start()
+            t3.join()
+            t4.join()
+            #Joy_obj.joysticks()
+            #Joy_obj.buttons()
+            #if Joy_obj.button_pressed == 1:
+            # print(Joy_obj.shared_obj.ret_dict)
+            que.put(Joy_obj.shared_obj.ret_dict)
+            sleep(0.1)
+        Joy_obj.clock.tick(20)
+
+    Joy_obj.quit()
 
 if __name__ == '__main__':
 
@@ -178,7 +218,7 @@ if __name__ == '__main__':
             t2 = Thread(target=Joy_obj.for_initializer, args=(str(i)))
             t2.start()
             t2.join()
-            #Joy_obj.for_initializer(i) # thread yap done() ile kontrol et olup olmadığını sonra diğerlerini threadle
+            #Joy_obj.for_initializer(i) # thread_S yap done() ile kontrol et olup olmadığını sonra diğerlerini threadle
             t3 = Thread(target=Joy_obj.joysticks)#, args=(str(i)))
             t4 = Thread(target=Joy_obj.buttons)#, args=(str(i)))
             t3.start()
@@ -189,6 +229,7 @@ if __name__ == '__main__':
             #Joy_obj.buttons()
             #if Joy_obj.button_pressed == 1:
             print(Joy_obj.shared_obj.ret_dict)
+            sleep(0.1)
 
         Joy_obj.clock.tick(20)
 

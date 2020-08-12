@@ -170,6 +170,7 @@ class RovMovement:
 
 
 if __name__ == '__main__':
+
     rov_movement = RovMovement(xy_lf_pin=0, xy_rf_pin=0, xy_lb_pin=0, xy_rb_pin=0,
                                z_lf_pin=0, z_rf_pin=0, z_lb_pin=0, z_rb_pin=0)
     try:

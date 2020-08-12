@@ -1,6 +1,14 @@
 import tkinter as tk
+from queue import Queue
 from random import randint
-from tkinter import font  as tkfont
+from threading import Thread
+from tkinter import font as tkfont
+
+from joystick import joystick_control
+# from lidars import lidar_control
+# from motors_with_cart import motor_xy_control
+from lidars import lidar_control
+from motors_with_cart import motor_xy_control
 
 
 class SampleApp(tk.Tk):
@@ -34,9 +42,13 @@ class SampleApp(tk.Tk):
 
         self.show_frame("StartPage")
 
-    def show_frame(self, page_name):
+    def show_frame(self, page_name, mission=None):
         '''Show a frame for the given page name'''
         frame = self.frames[page_name]
+        if mission == 1:
+            update_thread = Thread(target=update_from_joystick, args=(self.frames["ObservationPage"],))
+            update_thread.start()
+            pass
         frame.tkraise()
 
     def remove_frame(self, page_name):
@@ -105,7 +117,7 @@ class StartPage(tk.Frame):
         if self.count == self.limit:  # TODO control
             self.completion_bar_label['text'] += ":::"
             self.count = 0
-            self.controller.show_frame("SelectMissionPage")
+            self.controller.show_frame("SelectMissionPage", 0)
             # self.controller.remove_frame(StartPage)
             self.destroy()
             return
@@ -129,7 +141,7 @@ class SelectMissionPage(tk.Frame):
         mission_1_frame.pack()
         mission_1_image = tk.PhotoImage(file="joystick.png")
         mission_1_button = tk.Button(mission_1_frame, text="Görev 1", image=mission_1_image, compound="top",
-                                     command=lambda: controller.show_frame("ObservationPage"))
+                                     command=lambda: controller.show_frame("ObservationPage", 1))
         mission_1_button.image = mission_1_image
         mission_1_button.pack()
 
@@ -143,7 +155,7 @@ class SelectMissionPage(tk.Frame):
         mission_2_frame.pack(side='left', fill="x", padx=10, pady=10)
         mission_2_image = tk.PhotoImage(file="mission_2.png")
         mission_2_button = tk.Button(mission_2_frame, text="Görev 2", image=mission_2_image, compound="top",
-                                     command=lambda: controller.show_frame("ObservationPage"))
+                                     command=lambda: controller.show_frame("ObservationPage", 2))
         mission_2_button.image = mission_2_image
         mission_2_button.pack()
 
@@ -151,7 +163,7 @@ class SelectMissionPage(tk.Frame):
         mission_3_frame.pack(side='right', fill="x", padx=10, pady=10)
         mission_3_image = tk.PhotoImage(file="mission_3.png")
         mission_3_button = tk.Button(mission_3_frame, text="Görev 3", image=mission_3_image, compound="top",
-                                     command=lambda: controller.show_frame("ObservationPage"))
+                                     command=lambda: controller.show_frame("ObservationPage", 3))
         mission_3_button.image = mission_3_image
         mission_3_button.pack()
 
@@ -165,6 +177,7 @@ class SelectMissionPage(tk.Frame):
 class ObservationPage(tk.Frame):
 
     def __init__(self, parent, controller):
+        self.counter = 0
         tk.Frame.__init__(self, parent, bg='skyblue', padx=10, pady=10)
         self.controller = controller
 
@@ -179,7 +192,8 @@ class ObservationPage(tk.Frame):
         tk.Label(components_frame, text="Kameralar: ").grid(row=3, column=0)
         tk.Label(components_frame, text="Hazır", width=8, bg='papaya whip').grid(row=3, column=1, pady=(0, 2))
         tk.Label(components_frame, text="Joystick: ").grid(row=4, column=0)
-        tk.Label(components_frame, text="Kapalı", width=8, bg='papaya whip').grid(row=4, column=1, pady=(0, 2))
+        self.joystick_value_label = tk.Label(components_frame, text="Kapalı", width=8, bg='papaya whip')
+        self.joystick_value_label.grid(row=4, column=1, pady=(0, 2))
         tk.Label(components_frame, text="Robotik kol: ").grid(row=5, column=0)
         tk.Label(components_frame, text="Kapalı", width=8, bg='papaya whip').grid(row=5, column=1, pady=(0, 2))
         components_frame.grid(row=0, column=0, padx=10)
@@ -202,14 +216,14 @@ class ObservationPage(tk.Frame):
         lidars_frame = tk.Frame(self, highlightbackground="green", highlightthickness=1)
         tk.Label(lidars_frame, text='LIDARLAR', font=controller.title_font).grid(row=0, column=0, columnspan=3,
                                                                                  pady=(0, 15))
-        lidar_labels = {'xy': {}, 'z': {}}
+        self.lidar_labels = {'xy': {}, 'z': {}}
         center_r, center_c = 1 + 2, 1
         tk.Label(lidars_frame, text=" ").grid(row=center_r, column=center_c)
         for key, r, c in [('front', -1, 0), ('left', +1, -1), ('bottom', +1, 0), ('right', +1, +1)]:
             f = tk.Frame(lidars_frame)
             tk.Label(f, text=key.capitalize()).grid(row=0)
-            lidar_labels[key] = tk.Label(f, text=str(randint(30, 180)) + 'cm', width=8, bg='papaya whip')
-            lidar_labels[key].grid(row=1)
+            self.lidar_labels[key] = tk.Label(f, text=str(randint(30, 180)) + 'cm', width=8, bg='papaya whip')
+            self.lidar_labels[key].grid(row=1)
             f.grid(row=center_r + r, column=center_c + c, padx=5)
         lidars_frame.grid(row=0, column=2, padx=10)
 
@@ -221,6 +235,74 @@ class ObservationPage(tk.Frame):
         tk.Label(cameras_frame, text=" ", width=40, height=16).grid(row=1, column=1, padx=10)
         cameras_frame.grid(row=1, column=0, columnspan=3, padx=10, pady=(70, 10))
 
+    #     self.count = 0
+    #     self.controls_completed()
+    #
+    # def controls_completed(self):
+    #     print("controls_completed")
+    #
+    #     if self.count == 1000:  # TODO control
+    #         return
+    #     self.count += 1
+    #     print(self.count)
+    #     self.after(30, self.controls_completed)
+
+    def baslat(self):
+        self.joystick_value_label["text"] = "Açık"
+
+    def update_lidar_values(self, values: dict):
+        for key in values:
+            self.lidar_labels[key]["text"] = values[key][0]
+
+
+def update_from_joystick(frame):
+    print("Thrade oluşturuldu")
+
+    frame.baslat()
+
+    # keys = ["joystick", "lidar", "motor_xy", "motor_z", "robotic_kol"]
+    targets = {
+        "joystick": joystick_control,
+        "lidar": lidar_control,
+        "motor_xy": motor_xy_control,
+        # "motor_z": motor_z_control,
+        # "robotic_kol": robotic_kol_control
+    }
+
+    queues = {}
+    threads = {}
+    for key in targets:
+        queues[key] = Queue()
+        threads[key] = Thread(target=targets[key], args=(queues[key],))
+        threads[key].start()
+
+    # joystick_queue = Queue()
+    # lidar_queue = Queue()
+    # motor_xy_queue = Queue()
+    # motor_z_queue = Queue()
+    # robotic_kol_queue = Queue()
+    #
+    # joystick_thread = Thread(target=joystick_control, args=(joystick_queue,))
+    # # lidar_thread = Thread(target=lidar_control, args=(lidar_queue,))
+    # # motor_xy_thread = Thread(target=motor_xy_control, args=(motor_xy_queue,))
+    # # motor_xy_thread = Thread(target=motor_z_control, args=(motor_z_queue,))
+    # # robotic_kol_thread = Thread(target=robotic_kol_control, args=(robotic_kol_queue,))
+    #
+    # joystick_thread.start()
+    # # lidar_thread.start()
+    # # motor_xy_thread.start()
+    # # motor_xy_thread.start()
+    # # robotic_kol_thread.start()
+
+    while True:
+        joystick_value = queues["joystick"].get()
+        print(joystick_value)
+        frame.update_lidar_values(queues["lidar"].get())
+        # queues["motor_xy"].put(joystick_value)
+        # queues["motor_z"].put(joystick_value["z_axes"])
+
+
+        pass
 
 if __name__ == "__main__":
     app = SampleApp()

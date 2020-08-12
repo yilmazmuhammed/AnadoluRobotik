@@ -32,7 +32,7 @@ class ContinuousRotationServo:
         """
         power *= -1
         power = power * self.power_multiplier
-        self.control.throttle = power/100
+        self.control.throttle = power / 100
 
     def run_clockwise(self, power):
         """
@@ -182,6 +182,34 @@ class RovMovement:
     def close(self):
         self.stop()
 
+
+rov_movement = RovMovement(xy_lf_pin=0, xy_rf_pin=0, xy_lb_pin=0, xy_rb_pin=0,
+                           z_lf_pin=0, z_rf_pin=0, z_lb_pin=0, z_rb_pin=0)
+
+
+def motor_xy_control(que):
+    while True:
+        value = que.get()
+
+        if not value["xy_plane"]["magnitude"] == 0.0 or value["turn_itself"] == 0.0:
+            power = value["xy_plane"]["magnitude"]
+            degree = value["xy_plane"]["angel"]
+            rov_movement.go_xy(power, degree)
+        else:
+            power = value["turn_itself"]
+            if power > 0:
+                rov_movement.turn_right(abs(power))
+            else:
+                rov_movement.turn_left(abs(power))
+
+
+def motor_z_control(que):
+    while True:
+        power = que.get()
+        if power > 0:
+            rov_movement.go_up(abs(power))
+        else:
+            rov_movement.go_down(abs(power))
 
 if __name__ == '__main__':
     rov_movement = RovMovement(xy_lf_pin=0, xy_rf_pin=0, xy_lb_pin=0, xy_rb_pin=0,
