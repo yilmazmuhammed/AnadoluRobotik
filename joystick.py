@@ -13,9 +13,11 @@ class SharedOutput():
         self.ret_dict = {"xy_plane": {"angel":0,            #jotstick çubuğunun ileri geri ve sağa sola ittirilmesi
                                       "magnitude":0},
                         "z_axes":0,                         #5 ve 3 numaralı butonlara basılması durumu
-                        "turn_itself":0}                    #joystick çubuğunun kendi eksininde döndürülmesi hareketi
+                        "turn_itself":0,
+                        "robotik_kol":0}                    #joystick çubuğunun kendi eksininde döndürülmesi hareketi
         self.x = 0
         self.y = 0
+        self.k = 1
 
     def update_xy(self):
         self.angel_calculator()
@@ -32,6 +34,10 @@ class SharedOutput():
     def set_y(self, y):
         self.y = y
 
+    def update_kol(self):
+        self.k = -1*self.k
+        self.ret_dict["robotik_kol"] = self.k
+
     def angel_calculator(self):
         x = self.x
         y = self.y
@@ -41,7 +47,7 @@ class SharedOutput():
         elif x>0:
             if y>0:
                 angel = math.atan(y/x)
-            elif(y>0):
+            elif(y<0):
                 angel = 2*np.pi + math.atan(y/x)
             else:
                 angel = 0
@@ -92,15 +98,18 @@ class Joystick:
         self.i = i
 
     def while_initializer(self):
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 done = True
             elif event.type == pygame.JOYBUTTONDOWN:
-                #self.button_pressed = 1
-                print("Joystick button pressed.")
-            elif event.type == pygame.JOYBUTTONUP:
+                if pygame.joystick.Joystick(self.i).get_button(0)==1:
+                    self.shared_obj.update_kol()
+                    #print("Joystick button released.")
+            """elif event.type == pygame.JOYBUTTONUP:
+                #if pygame.joystick.Joystick(self.i).get_button(0)==1:
                 #self.button_pressed = 0
-                print("Joystick button released.")
+                print("Joystick button released.")"""
 
         self.joystick_count = pygame.joystick.get_count()
 
@@ -157,14 +166,28 @@ class Joystick:
         for i in range(buttons):
             button = joystick.get_button(i)
             if button>0:
+                if(i==0):
+                    print("z ekseninde yukarı çıkılıyor")
+                    #self.ret_dict["z_axes"] = 1
+                    self.shared_obj.update_kol(1)
+            else:
+                if(i==0):
+                    print("z ekseninde yukarı çıkılıyor")
+                    #self.ret_dict["z_axes"] = 1
+                    self.shared_obj.update_kol(0)
+                """if(i==3):
+                    print("z ekseninde aşağı iniliyor")
+                    #self.ret_dict["z_axes"] = -1
+                    self.shared_obj.update_z(-1)"""
+            """elif button==0:
                 if(i==5):
                     print("z ekseninde yukarı çıkılıyor")
                     #self.ret_dict["z_axes"] = 1
-                    self.shared_obj.update_z(1)
+                    self.shared_obj.update_z(0)
                 if(i==3):
                     print("z ekseninde aşağı iniliyor")
                     #self.ret_dict["z_axes"] = -1
-                    self.shared_obj.update_z(1)
+                    self.shared_obj.update_z(0)"""
 
     def quit(self):
         pygame.quit()
@@ -182,19 +205,20 @@ def joystick_control(que):
         #Joy_obj.while_initializer()
         t1.start()
         #print(joystick_count)
+        t1.join()
 
         for i in range(Joy_obj.joystick_count):
-            t1.join()
+            
             t2 = Thread(target=Joy_obj.for_initializer, args=(str(i)))
             t2.start()
             t2.join()
             #Joy_obj.for_initializer(i) # thread_S yap done() ile kontrol et olup olmadığını sonra diğerlerini threadle
             t3 = Thread(target=Joy_obj.joysticks)#, args=(str(i)))
-            t4 = Thread(target=Joy_obj.buttons)#, args=(str(i)))
+            #t4 = Thread(target=Joy_obj.buttons)#, args=(str(i)))
             t3.start()
-            t4.start()
+            #t4.start()
             t3.join()
-            t4.join()
+            #t4.join()
             #Joy_obj.joysticks()
             #Joy_obj.buttons()
             #if Joy_obj.button_pressed == 1:
@@ -216,19 +240,20 @@ if __name__ == '__main__':
         #Joy_obj.while_initializer()
         t1.start()
         #print(joystick_count)
+        t1.join()
 
         for i in range(Joy_obj.joystick_count):
-            t1.join()
+            
             t2 = Thread(target=Joy_obj.for_initializer, args=(str(i)))
             t2.start()
             t2.join()
             #Joy_obj.for_initializer(i) # thread_S yap done() ile kontrol et olup olmadığını sonra diğerlerini threadle
             t3 = Thread(target=Joy_obj.joysticks)#, args=(str(i)))
-            t4 = Thread(target=Joy_obj.buttons)#, args=(str(i)))
+            #t4 = Thread(target=Joy_obj.buttons)#, args=(str(i)))
             t3.start()
-            t4.start()
+            #t4.start()
             t3.join()
-            t4.join()
+            #t4.join()
             #Joy_obj.joysticks()
             #Joy_obj.buttons()
             #if Joy_obj.button_pressed == 1:
