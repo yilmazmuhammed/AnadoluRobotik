@@ -7,8 +7,7 @@ from tkinter import font as tkfont
 from joystick import joystick_control
 # from lidars import lidar_control
 # from motors_with_cart import motor_xy_control
-from lidars import lidar_control
-from motors_with_cart import motor_xy_control
+# from lidars import lidar_control
 
 
 class SampleApp(tk.Tk):
@@ -263,8 +262,8 @@ def update_from_joystick(frame):
     # keys = ["joystick", "lidar", "motor_xy", "motor_z", "robotic_kol"]
     targets = {
         "joystick": joystick_control,
-        "lidar": lidar_control,
-        "motor_xy": motor_xy_control,
+        # "lidar": lidar_control,
+        # "motor_xy": motor_xy_control,
         # "motor_z": motor_z_control,
         # "robotic_kol": robotic_kol_control
     }
@@ -276,31 +275,12 @@ def update_from_joystick(frame):
         threads[key] = Thread(target=targets[key], args=(queues[key],))
         threads[key].start()
 
-    # joystick_queue = Queue()
-    # lidar_queue = Queue()
-    # motor_xy_queue = Queue()
-    # motor_z_queue = Queue()
-    # robotic_kol_queue = Queue()
-    #
-    # joystick_thread = Thread(target=joystick_control, args=(joystick_queue,))
-    # # lidar_thread = Thread(target=lidar_control, args=(lidar_queue,))
-    # # motor_xy_thread = Thread(target=motor_xy_control, args=(motor_xy_queue,))
-    # # motor_xy_thread = Thread(target=motor_z_control, args=(motor_z_queue,))
-    # # robotic_kol_thread = Thread(target=robotic_kol_control, args=(robotic_kol_queue,))
-    #
-    # joystick_thread.start()
-    # # lidar_thread.start()
-    # # motor_xy_thread.start()
-    # # motor_xy_thread.start()
-    # # robotic_kol_thread.start()
-
     while True:
         joystick_value = queues["joystick"].get()
         print(joystick_value)
-        frame.update_lidar_values(queues["lidar"].get())
+        #frame.update_lidar_values(queues["lidar"].get())
         # queues["motor_xy"].put(joystick_value)
         # queues["motor_z"].put(joystick_value["z_axes"])
-
 
         pass
 

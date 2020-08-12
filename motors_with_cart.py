@@ -183,8 +183,8 @@ class RovMovement:
         self.stop()
 
 
-rov_movement = RovMovement(xy_lf_pin=0, xy_rf_pin=0, xy_lb_pin=0, xy_rb_pin=0,
-                           z_lf_pin=0, z_rf_pin=0, z_lb_pin=0, z_rb_pin=0)
+rov_movement = RovMovement(xy_lf_pin=0, xy_rf_pin=1, xy_lb_pin=2, xy_rb_pin=3,
+                           z_lf_pin=4, z_rf_pin=5, z_lb_pin=6, z_rb_pin=7, arm_pin=8)
 
 
 def motor_xy_control(que):
@@ -212,8 +212,8 @@ def motor_z_control(que):
             rov_movement.go_down(abs(power))
 
 if __name__ == '__main__':
-    rov_movement = RovMovement(xy_lf_pin=0, xy_rf_pin=0, xy_lb_pin=0, xy_rb_pin=0,
-                               z_lf_pin=0, z_rf_pin=0, z_lb_pin=0, z_rb_pin=0)
+    rov_movement = RovMovement(xy_lf_pin=0, xy_rf_pin=1, xy_lb_pin=2, xy_rb_pin=3,
+                               z_lf_pin=4, z_rf_pin=5, z_lb_pin=6, z_rb_pin=7, arm_pin=8)
     try:
         import getch
 
