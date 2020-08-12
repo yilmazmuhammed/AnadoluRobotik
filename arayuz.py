@@ -6,8 +6,7 @@ from tkinter import font as tkfont
 
 from joystick import joystick_control
 # from lidars import lidar_control
-# from motors_with_cart import motor_xy_control
-# from lidars import lidar_control
+from motors_with_cart import motor_xy_control, motor_z_control
 
 
 class SampleApp(tk.Tk):
@@ -263,8 +262,8 @@ def update_from_joystick(frame):
     targets = {
         "joystick": joystick_control,
         # "lidar": lidar_control,
-        # "motor_xy": motor_xy_control,
-        # "motor_z": motor_z_control,
+        "motor_xy": motor_xy_control,
+        "motor_z": motor_z_control,
         # "robotic_kol": robotic_kol_control
     }
 
@@ -278,9 +277,9 @@ def update_from_joystick(frame):
     while True:
         joystick_value = queues["joystick"].get()
         print(joystick_value)
-        #frame.update_lidar_values(queues["lidar"].get())
-        # queues["motor_xy"].put(joystick_value)
-        # queues["motor_z"].put(joystick_value["z_axes"])
+        # frame.update_lidar_values(queues["lidar"].get())
+        queues["motor_xy"].put(joystick_value)
+        queues["motor_z"].put(joystick_value["z_axes"])
 
         pass
 
