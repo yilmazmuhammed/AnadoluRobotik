@@ -30,6 +30,7 @@ class ContinuousRotationServo:
                       positive values​make it work forward.
         :return:
         """
+        print("_change_power(%s)"%power)
         self.control.throttle = power / 100
 
     def run_clockwise(self, power):
