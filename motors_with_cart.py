@@ -32,7 +32,7 @@ class ContinuousRotationServo:
                 continue
             elif self.prev_power < self.throttle:
                 for i in range(self.prev_power+1, self.throttle+1):
-                    self.control.throttle = i
+                    self.control.throttle = i/100
                     sleep(slp)
             else:
                 for i in range(self.prev_power-1, self.throttle-1, -1):
