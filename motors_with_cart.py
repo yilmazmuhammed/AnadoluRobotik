@@ -157,6 +157,7 @@ class RovMovement:
         pow_lb = int(math.sin(radian_lb) * power_per_motor)
         pow_rb = int(math.sin(radian_rb) * power_per_motor)
 
+        print("self.xy_rf.run_bidirectional(%s)" % pow_rf)
         self.xy_rf.run_bidirectional(pow_rf)
         self.xy_lf.run_bidirectional(pow_lf)
         self.xy_lb.run_bidirectional(pow_lb)
