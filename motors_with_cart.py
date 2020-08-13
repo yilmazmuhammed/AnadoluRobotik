@@ -137,7 +137,7 @@ class RovMovement:
         print("All motors initialized...")
 
     def go_up(self, power):
-        power_per_motor = power / 4
+        power_per_motor = int(power / 4)
         for motor in self.z_motors_list:
             motor.run_clockwise(power_per_motor)
 
