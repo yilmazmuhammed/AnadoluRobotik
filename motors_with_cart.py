@@ -1,4 +1,5 @@
 import math
+from threading import Thread
 from time import sleep
 from adafruit_servokit import ServoKit
 
@@ -19,7 +20,25 @@ class ContinuousRotationServo:
         self.control = None
         self.pin = pin
         self.prev_power = 0
+        self.throttle = 0
+        self.thread = Thread(target=self.motor_thread)
+        self.thread.start()
         self.motor_initialize()
+
+    def motor_thread(self):
+        slp = 0.02
+        while True:
+            if self.prev_power == self.throttle:
+                continue
+            elif self.prev_power < self.throttle:
+                for i in range(self.prev_power+1, self.throttle+1):
+                    self.control.throttle = i
+                    sleep(slp)
+            else:
+                for i in range(self.prev_power-1, self.throttle-1, -1):
+                    self.control.throttle = i
+                    sleep(slp)
+            self.prev_power = self.throttle
 
     def motor_initialize(self):
         self.control = kit.continuous_servo[self.pin]
@@ -31,12 +50,8 @@ class ContinuousRotationServo:
                       positive values​make it work forward.
         :return:
         """
-        print("pin: %s\t_change_power(%s)" % (self.pin, power,))
-        for i in range(self.prev_power, power+1, 1 if power > self.prev_power else -1):
-            print(self.prev_power, "->", power, "=", i)
-            self.control.throttle = i / 100
-            sleep(0.05)
-        self.prev_power = power
+        print("pin: %s\tself.throttle = %s/100" % (self.pin, power,))
+        self.throttle = power / 100
 
     def run_clockwise(self, power):
         """
