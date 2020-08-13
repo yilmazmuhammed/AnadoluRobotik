@@ -225,7 +225,7 @@ def joystick_control(que):
             # print(Joy_obj.shared_obj.ret_dict)
             que.put(Joy_obj.shared_obj.ret_dict)
             sleep(0.1)
-        Joy_obj.clock.tick(20)
+        Joy_obj.clock.tick(50)
 
     Joy_obj.quit()
 
