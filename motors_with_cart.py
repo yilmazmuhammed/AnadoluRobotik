@@ -103,8 +103,9 @@ class RovMovement:
 
     def _initialize_motors(self):
         print("All motors initializing...")
-        for i in list(range(0, 100)) + list(range(100, -100, -1)) + list(range(-100, 1)):
-            print("Power:",i)
+        mp = 70
+        for i in list(range(0, mp)) + list(range(mp, -mp, -1)) + list(range(-mp, 1)):
+            print("Power:", i)
             for motor in self.all_motors_list:
                 motor.run_bidirectional(i)
                 sleep(0.01)
@@ -205,12 +206,15 @@ def motor_xy_control(que):
         if not value["xy_plane"]["magnitude"] == 0.0 or value["turn_itself"] == 0.0:
             power = value["xy_plane"]["magnitude"]
             degree = value["xy_plane"]["angel"]
+            print("rov_movement.go_xy(%s, %s)" % (power, degree))
             rov_movement.go_xy(power, degree)
         else:
             power = value["turn_itself"]
             if power > 0:
+                print("rov_movement.turn_right(abs(%s))" % (power,))
                 rov_movement.turn_right(abs(power))
             else:
+                print("rov_movement.turn_left(abs(%s))" % (power,))
                 rov_movement.turn_left(abs(power))
 
 
@@ -219,8 +223,10 @@ def motor_z_control(que):
     while True:
         power = que.get()
         if power > 0:
+            print("rov_movement.go_up(abs(%s))" % (power,))
             rov_movement.go_up(abs(power))
         else:
+            print("rov_movement.go_down(abs(%s))" % (power,))
             rov_movement.go_down(abs(power))
 
 
