@@ -142,7 +142,7 @@ class RovMovement:
             motor.run_clockwise(power_per_motor)
 
     def go_down(self, power):
-        power_per_motor = power / 4
+        power_per_motor = int(power / 4)
         for motor in self.z_motors_list:
             motor.run_counterclockwise(power_per_motor)
 
