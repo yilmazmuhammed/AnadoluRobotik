@@ -103,7 +103,7 @@ class RovMovement:
 
     def _initialize_motors(self):
         print("All motors initializing...")
-        mp = 70
+        mp = 30
         for i in list(range(0, mp)) + list(range(mp, -mp, -1)) + list(range(-mp, 1)):
             print("Power:", i)
             for motor in self.all_motors_list:
@@ -156,7 +156,8 @@ class RovMovement:
         pow_lf = int(math.sin(radian_lf) * power_per_motor)
         pow_lb = int(math.sin(radian_lb) * power_per_motor)
         pow_rb = int(math.sin(radian_rb) * power_per_motor)
-
+        print("power: %s\t power_per_motor: %s\t radian_rf: %s\t degree_rf: %s\t pow_rf: %s" %
+              (power, power_per_motor, radian_rf, radian_rf*180/math.pi, pow_rf))
         print("self.xy_rf.run_bidirectional(%s)" % pow_rf)
         self.xy_rf.run_bidirectional(pow_rf)
         self.xy_lf.run_bidirectional(pow_lf)
