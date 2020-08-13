@@ -36,7 +36,7 @@ class ContinuousRotationServo:
                     sleep(slp)
             else:
                 for i in range(self.prev_power-1, self.throttle-1, -1):
-                    self.control.throttle = i
+                    self.control.throttle = i/100
                     sleep(slp)
             self.prev_power = self.throttle
 
@@ -51,7 +51,7 @@ class ContinuousRotationServo:
         :return:
         """
         print("pin: %s\tself.throttle = %s/100" % (self.pin, power,))
-        self.throttle = power / 100
+        self.throttle = power
 
     def run_clockwise(self, power):
         """
