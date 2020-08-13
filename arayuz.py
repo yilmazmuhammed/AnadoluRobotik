@@ -263,7 +263,7 @@ def update_from_joystick(frame):
         "joystick": joystick_control,
         # "lidar": lidar_control,
         "motor_xy": motor_xy_control,
-        "motor_z": motor_z_control,
+        # "motor_z": motor_z_control,
         # "robotic_kol": robotic_kol_control
     }
 
@@ -279,7 +279,7 @@ def update_from_joystick(frame):
         print(joystick_value)
         # frame.update_lidar_values(queues["lidar"].get())
         queues["motor_xy"].put(joystick_value)
-        queues["motor_z"].put(joystick_value["z_axes"])
+        # queues["motor_z"].put(joystick_value["z_axes"])
 
         pass
 

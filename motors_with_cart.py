@@ -30,7 +30,7 @@ class ContinuousRotationServo:
                       positive values​make it work forward.
         :return:
         """
-        print("_change_power(%s)"%power)
+        print("pin: %s\t_change_power(%s)" % (self.pin, power,))
         self.control.throttle = power / 100
 
     def run_clockwise(self, power):
@@ -159,7 +159,7 @@ class RovMovement:
         pow_lb = math.sin(radian_lb) * power_per_motor
         pow_rb = math.sin(radian_rb) * power_per_motor
         print("power: %s\t power_per_motor: %s\t radian_rf: %s\t degree_rf: %s\t pow_rf: %s" %
-              (power, power_per_motor, radian_rf, radian_rf*180/math.pi, pow_rf))
+              (power, power_per_motor, radian_rf, radian_rf * 180 / math.pi, pow_rf))
         print("self.xy_rf.run_bidirectional(%s)" % pow_rf)
         self.xy_rf.run_bidirectional(pow_rf)
         self.xy_lf.run_bidirectional(pow_lf)
@@ -208,12 +208,12 @@ def motor_xy_control(que):
         value = que.get()
 
         if not value["xy_plane"]["magnitude"] == 0.0 or value["turn_itself"] == 0.0:
-            power = value["xy_plane"]["magnitude"]
+            power = value["xy_plane"]["magnitude"]*100
             degree = value["xy_plane"]["angel"]
             print("rov_movement.go_xy(%s, %s)" % (power, degree))
             rov_movement.go_xy(power, degree)
         else:
-            power = value["turn_itself"]
+            power = value["turn_itself"]*100
             if power > 0:
                 print("rov_movement.turn_right(abs(%s))" % (power,))
                 rov_movement.turn_right(abs(power))
@@ -225,7 +225,7 @@ def motor_xy_control(que):
 def motor_z_control(que):
     print("motor_z_control thread oluşturuldu.")
     while True:
-        power = que.get()
+        power = que.get()*100
         if power > 0:
             print("rov_movement.go_up(abs(%s))" % (power,))
             rov_movement.go_up(abs(power))
