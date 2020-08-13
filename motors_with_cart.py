@@ -20,10 +20,11 @@ class ContinuousRotationServo:
     def __init__(self, pin):
         self.control = None
         self.pin = pin
+        self.motor_initialize()
+
         self.queue = Queue()
         self.thread = Thread(target=self.motor_thread, args=(self.queue,))
         self.thread.start()
-        self.motor_initialize()
 
     def motor_thread(self, queue):
         slp = 0.02
