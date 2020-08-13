@@ -32,10 +32,10 @@ class ContinuousRotationServo:
         :return:
         """
         print("pin: %s\t_change_power(%s)" % (self.pin, power,))
-        for i in range(self.prev_power, power, 1 if power > self.prev_power else -1):
+        for i in range(self.prev_power, power+1, 1 if power > self.prev_power else -1):
             print(self.prev_power, "->", power, "=", i)
             self.control.throttle = i / 100
-            sleep(0.01)
+            sleep(0.05)
         self.prev_power = power
 
     def run_clockwise(self, power):
