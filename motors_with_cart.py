@@ -104,9 +104,10 @@ class RovMovement:
     def _initialize_motors(self):
         print("All motors initializing...")
         for i in list(range(0, 100)) + list(range(100, -100, -1)) + list(range(-100, 1)):
+            print("Power:",i)
             for motor in self.all_motors_list:
                 motor.run_bidirectional(i)
-                sleep(0.05)
+                sleep(0.01)
         print("All motors initialized...")
 
     def go_up(self, power):
