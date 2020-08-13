@@ -159,10 +159,10 @@ class RovMovement:
         radian_lb = (225 - degree) / 180 * math.pi
         radian_rb = (315 - degree) / 180 * math.pi
 
-        pow_rf = math.sin(radian_rf) * power_per_motor
-        pow_lf = math.sin(radian_lf) * power_per_motor
-        pow_lb = math.sin(radian_lb) * power_per_motor
-        pow_rb = math.sin(radian_rb) * power_per_motor
+        pow_rf = int(math.sin(radian_rf) * power_per_motor)
+        pow_lf = int(math.sin(radian_lf) * power_per_motor)
+        pow_lb = int(math.sin(radian_lb) * power_per_motor)
+        pow_rb = int(math.sin(radian_rb) * power_per_motor)
         print("power: %s\t power_per_motor: %s\t radian_rf: %s\t degree_rf: %s\t pow_rf: %s" %
               (power, power_per_motor, radian_rf, radian_rf * 180 / math.pi, pow_rf))
         print("self.xy_rf.run_bidirectional(%s)" % pow_rf)
