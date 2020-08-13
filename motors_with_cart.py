@@ -1,4 +1,5 @@
 import math
+from queue import Queue
 from threading import Thread
 from time import sleep
 from adafruit_servokit import ServoKit
@@ -19,30 +20,32 @@ class ContinuousRotationServo:
     def __init__(self, pin):
         self.control = None
         self.pin = pin
-        self.prev_power = 0
-        self.throttle = 0
-        self.thread = Thread(target=self.motor_thread)
+        self.queue = Queue()
+        self.thread = Thread(target=self.motor_thread, args=(self.queue,))
         self.thread.start()
         self.motor_initialize()
 
-    def motor_thread(self):
+    def motor_thread(self, queue):
         slp = 0.02
+        prev_power = 0
+        throttle = 0
+        control = self.control
         while True:
-            if self.prev_power == self.throttle:
+            throttle = queue.get()
+            if prev_power == throttle:
                 continue
-            elif self.prev_power < self.throttle:
-                for i in range(self.prev_power+1, self.throttle+1):
-                    self.control.throttle = i/100
+            elif prev_power < throttle:
+                for i in range(prev_power+1, throttle+1):
+                    control.throttle = i/100
                     sleep(slp)
             else:
-                for i in range(self.prev_power-1, self.throttle-1, -1):
-                    self.control.throttle = i/100
+                for i in range(prev_power-1, throttle-1, -1):
+                    control.throttle = i/100
                     sleep(slp)
-            self.prev_power = self.throttle
+            prev_power = throttle
 
     def motor_initialize(self):
         self.control = kit.continuous_servo[self.pin]
-        self._change_power(0)
 
     def _change_power(self, power):
         """
@@ -51,7 +54,7 @@ class ContinuousRotationServo:
         :return:
         """
         print("pin: %s\tself.throttle = %s/100" % (self.pin, power,))
-        self.throttle = power
+        self.queue.put(power)
 
     def run_clockwise(self, power):
         """
