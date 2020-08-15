@@ -15,7 +15,8 @@ imageFrame.grid(row=0, column=0, padx=10, pady=2)
 # Capture video frames
 lmain = tk.Label(imageFrame)
 lmain.grid(row=0, column=0)
-cap = cv2.VideoCapture(0)
+# cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture("../../cember.mp4")
 
 
 def show_frame():

@@ -29,7 +29,7 @@ class CSI_Camera:
             self.video_capture = cv2.VideoCapture(
                 gstreamer_pipeline_string, cv2.CAP_GSTREAMER
             )
-
+            # self.video_capture = cv2.VideoCapture("cember.mp4")
         except RuntimeError:
             self.video_capture = None
             print("Unable to open camera")
