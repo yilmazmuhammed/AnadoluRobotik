@@ -274,10 +274,10 @@ def update_from_joystick(frame):
 
     # keys = ["joystick", "lidar", "motor_xy", "motor_z", "robotic_kol"]
     targets = {
-        "joystick": joystick_control,
+        # "joystick": joystick_control,
         # "lidar": lidar_control,
-        "motor_xy": motor_xy_control,
-        "motor_z": motor_z_control,
+        # "motor_xy": motor_xy_control,
+        # "motor_z": motor_z_control,
         # "robotic_kol": robotic_kol_control
     }
 
