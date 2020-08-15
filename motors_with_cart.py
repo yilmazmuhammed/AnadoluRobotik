@@ -36,11 +36,13 @@ class ContinuousRotationServo:
             if prev_power == throttle:
                 continue
             elif prev_power < throttle:
-                for i in range(prev_power+1, throttle+1):
+                print("asdasdasdads", prev_power, throttle)
+                for i in range(int(prev_power+1), int(throttle+1)):
                     control.throttle = i/100
                     sleep(slp)
             else:
-                for i in range(prev_power-1, throttle-1, -1):
+                print("asdasdasdads", prev_power, throttle)
+                for i in range(int(prev_power-1), int(throttle-1, -1)):
                     control.throttle = i/100
                     sleep(slp)
             prev_power = throttle
@@ -54,7 +56,6 @@ class ContinuousRotationServo:
                       positive values​make it work forward.
         :return:
         """
-        print("pin: %s\tself.throttle = %s/100" % (self.pin, power,))
         self.queue.put(power)
 
     def run_clockwise(self, power):
