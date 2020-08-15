@@ -11,11 +11,9 @@ from threading import Thread, Lock
 from tkinter import font as tkfont
 
 from csi_camera import CSI_Camera
-
-
-# from joystick import joystick_control
-# from lidars import lidar_control
-# from motors_with_cart import motor_xy_control, motor_z_control
+from joystick import joystick_control
+from lidars import lidar_control
+from motors_with_cart import motor_arm_control, motor_z_control, motor_xy_control
 
 
 class SampleApp(tk.Tk):
@@ -306,11 +304,11 @@ def update_from_joystick(frame):
 
     # keys = ["joystick", "lidar", "motor_xy", "motor_z", "robotic_kol"]
     targets = {
-        # "joystick": joystick_control,
+        "joystick": joystick_control,
         # "lidar": lidar_control,
-        # "motor_xy": motor_xy_control,
-        # "motor_z": motor_z_control,
-        # "motor_arm": motor_arm_control
+        "motor_xy": motor_xy_control,
+        "motor_z": motor_z_control,
+        "motor_arm": motor_arm_control
     }
 
     queues = {}
@@ -320,23 +318,23 @@ def update_from_joystick(frame):
         threads[key] = Thread(target=targets[key], args=(queues[key],))
         threads[key].start()
 
-    # # Lidars variables are creating
-    # lidars_lock = Lock()
-    # lidars_values = {}
-    # lidars_ports = {"front": "/dev/ttyUSB0", "left": "/dev/ttyUSB1", "right": "/dev/ttyUSB2"}
-    # th = Thread(target=lidar_control, args=(lidars_lock, lidars_values, lidars_ports,))
-    # th.start()
-    # # Lidars variables are created
+    # Lidars variables are creating
+    lidars_lock = Lock()
+    lidars_values = {}
+    lidars_ports = {"front": "/dev/ttyUSB0", "left": "/dev/ttyUSB1", "right": "/dev/ttyUSB2"}
+    th = Thread(target=lidar_control, args=(lidars_lock, lidars_values, lidars_ports,))
+    th.start()
+    # Lidars variables are created
 
     while True:
-        # with lidars_lock:
-        #     frame.update_lidar_values(lidars_values)
+        with lidars_lock:
+            frame.update_lidar_values(lidars_values)
 
-        # joystick_value = queues["joystick"].get()
-        # print(joystick_value)
-        # queues["motor_xy"].put(joystick_value)
-        # queues["motor_z"].put(joystick_value["z_axes"])
-        # queues["motor_arm"].put(joystick_value["robotik_kol"])
+        joystick_value = queues["joystick"].get()
+        print(joystick_value)
+        queues["motor_xy"].put(joystick_value)
+        queues["motor_z"].put(joystick_value["z_axes"])
+        queues["motor_arm"].put(joystick_value["robotik_kol"])
 
         pass
 
