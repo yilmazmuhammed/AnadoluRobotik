@@ -1,5 +1,6 @@
 import cv2
 import tkinter as tk
+from PIL import Image, ImageTk
 from queue import Queue
 from random import randint
 from threading import Thread, Lock
