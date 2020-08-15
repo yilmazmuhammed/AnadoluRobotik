@@ -1,12 +1,14 @@
+import cv2
 import tkinter as tk
 from queue import Queue
 from random import randint
 from threading import Thread, Lock
 from tkinter import font as tkfont
 
-from joystick import joystick_control
-from lidars import lidar_control
-from motors_with_cart import motor_xy_control, motor_z_control
+from csi_camera import CSI_Camera
+# from joystick import joystick_control
+# from lidars import lidar_control
+# from motors_with_cart import motor_xy_control, motor_z_control
 
 
 class SampleApp(tk.Tk):
@@ -228,8 +230,10 @@ class ObservationPage(tk.Frame):
         # KAMERALAR
         cameras_frame = tk.Frame(self, bg='skyblue')
         tk.Label(cameras_frame, text="Ön Kamera", width=40, bg='skyblue').grid(row=0, column=0, padx=10, pady=5)
-        tk.Label(cameras_frame, text=" ", width=40, height=16).grid(row=1, column=0, padx=10)
-        tk.Label(cameras_frame, text="Alt Kamera", width=40, bg='skyblue').grid(row=0, column=1, padx=10, pady=5)
+        self.left_camera = tk.Label(cameras_frame, text=" ", width=40, height=16)
+        self.left_camera.grid(row=1, column=0, padx=10)
+        self.right_camera = tk.Label(cameras_frame, text="Alt Kamera", width=40, bg='skyblue')
+        self.right_camera.grid(row=0, column=1, padx=10, pady=5)
         tk.Label(cameras_frame, text=" ", width=40, height=16).grid(row=1, column=1, padx=10)
         cameras_frame.grid(row=1, column=0, columnspan=3, padx=10, pady=(70, 10))
 
@@ -252,6 +256,16 @@ class ObservationPage(tk.Frame):
         for key in values:
             self.lidar_labels[key]["text"] = values[key][0]
 
+    def update_cameras(self, left_frame, right_frame):
+        cv2image_left = cv2.cvtColor(left_frame, cv2.COLOR_BGR2RGBA) # convert colors from BGR to RGBA
+        img_left = Image.fromarray(cv2image_left)  # convert image for PIL
+        imgtk_left = ImageTk.PhotoImage(image=img_left)  # convert image for tkinter
+        cv2image_right = cv2.cvtColor(right_frame, cv2.COLOR_BGR2RGBA) # convert colors from BGR to RGBA
+        img_right = Image.fromarray(cv2image_right)  # convert image for PIL
+        imgtk_right = ImageTk.PhotoImage(image=img_right)  # convert image for tkinter
+
+        self.left_camera.imgtk = imgtk_left
+        self.right_camera.imgtk = imgtk_right
 
 def update_from_joystick(frame):
     print("Thrade oluşturuldu")
@@ -274,24 +288,43 @@ def update_from_joystick(frame):
         threads[key] = Thread(target=targets[key], args=(queues[key],))
         threads[key].start()
 
-    # Lidars variables are creating
-    lidars_lock = Lock()
-    lidars_values = {}
-    lidars_ports = {"front": "/dev/ttyUSB0", "left": "/dev/ttyUSB1", "right": "/dev/ttyUSB2"}
-    th = Thread(target=lidar_control, args=(lidars_lock, lidars_values, lidars_ports,))
-    th.start()
-    # Lidars variables are created
+    # # Lidars variables are creating
+    # lidars_lock = Lock()
+    # lidars_values = {}
+    # lidars_ports = {"front": "/dev/ttyUSB0", "left": "/dev/ttyUSB1", "right": "/dev/ttyUSB2"}
+    # th = Thread(target=lidar_control, args=(lidars_lock, lidars_values, lidars_ports,))
+    # th.start()
+    # # Lidars variables are created
 
-    while True:
-        with lidars_lock:
-            frame.update_lidar_values(lidars_values)
+    left_camera = CSI_Camera(sensor_id=0, sensor_mode=3, flip_method=0, display_height=540, display_width=960)
+    left_camera.start()
+    right_camera = CSI_Camera(sensor_id=1, sensor_mode=3, flip_method=0, display_height=540, display_width=960)
+    right_camera.start()
+    if not left_camera.video_capture.isOpened() or not right_camera.video_capture.isOpened():
+        # Cameras did not open, or no camera attached
+        raise Exception("Unable to open any cameras")
 
-        joystick_value = queues["joystick"].get()
-        print(joystick_value)
-        queues["motor_xy"].put(joystick_value)
-        queues["motor_z"].put(joystick_value["z_axes"])
+    try:
+        while True:
+            # with lidars_lock:
+            #     frame.update_lidar_values(lidars_values)
 
-        pass
+            _, left_image = left_camera.read()
+            _, right_image = right_camera.read()
+            frame.update_cameras(left_frame=left_image, right_frame=right_image)
+
+            # joystick_value = queues["joystick"].get()
+            # print(joystick_value)
+            # queues["motor_xy"].put(joystick_value)
+            # queues["motor_z"].put(joystick_value["z_axes"])
+
+            pass
+    except KeyboardInterrupt as ki:  # Ctrl+C
+        left_camera.stop()
+        left_camera.release()
+        right_camera.stop()
+        right_camera.release()
+        raise ki
 
 if __name__ == "__main__":
     app = SampleApp()
