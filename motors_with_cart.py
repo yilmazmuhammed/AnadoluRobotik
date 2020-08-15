@@ -221,8 +221,8 @@ class RovMovement:
 
 
 print("global rov_movement başlangıç")
-rov_movement = RovMovement(xy_lf_pin=0, xy_rf_pin=1, xy_lb_pin=2, xy_rb_pin=3,
-                           z_lf_pin=4, z_rf_pin=5, z_lb_pin=6, z_rb_pin=7, arm_pin=8)
+rov_movement = RovMovement(xy_lf_pin=0, xy_rf_pin=1, xy_lb_pin=3, xy_rb_pin=2,
+                           z_lf_pin=7, z_rf_pin=6, z_lb_pin=4, z_rb_pin=5, arm_pin=8)
 print("global rov_movement bitiş")
 
 
