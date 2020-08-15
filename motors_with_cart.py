@@ -234,15 +234,12 @@ def motor_xy_control(que):
         if not value["xy_plane"]["magnitude"] == 0.0 or value["turn_itself"] == 0.0:
             power = value["xy_plane"]["magnitude"]*100
             degree = value["xy_plane"]["angel"]
-            print("rov_movement.go_xy(%s, %s)" % (power, degree))
             rov_movement.go_xy(power, degree)
         else:
             power = value["turn_itself"]*100
             if power > 0:
-                print("rov_movement.turn_right(abs(%s))" % (power,))
                 rov_movement.turn_right(abs(power))
             else:
-                print("rov_movement.turn_left(abs(%s))" % (power,))
                 rov_movement.turn_left(abs(power))
 
 
@@ -251,10 +248,8 @@ def motor_z_control(que):
     while True:
         power = que.get()*100
         if power > 0:
-            print("rov_movement.go_up(abs(%s))" % (power,))
             rov_movement.go_up(abs(power))
         else:
-            print("rov_movement.go_down(abs(%s))" % (power,))
             rov_movement.go_down(abs(power))
 
 

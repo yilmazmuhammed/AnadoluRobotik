@@ -290,7 +290,7 @@ def update_camera_thread(frame):
         _, left_frame = left_camera.read()
         _, right_frame = right_camera.read()
         frame.update_cameras(left_frame=left_frame, right_frame=right_frame)
-        sleep(0.05)
+        # sleep(0.05)
 
 
 def update_from_joystick(frame):
@@ -321,7 +321,7 @@ def update_from_joystick(frame):
     # Lidars variables are creating
     lidars_lock = Lock()
     lidars_values = {}
-    lidars_ports = {"front": "/dev/ttyUSB0", "left": "/dev/ttyUSB1", "right": "/dev/ttyUSB2"}
+    lidars_ports = {"front": "/dev/ttyUSB0", "left": "/dev/ttyUSB1", "right": "/dev/ttyUSB2", "bottom":"/dev/ttyTHS1"}
     th = Thread(target=lidar_control, args=(lidars_lock, lidars_values, lidars_ports,))
     th.start()
     # Lidars variables are created
