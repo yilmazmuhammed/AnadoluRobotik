@@ -2,7 +2,7 @@ import pygame
 import os
 import numpy as np
 import math
-import motors
+import motors_with_pigpio
 
 # Robotik kol pin ayarlama, 75-81 satirda servo güc degerleri
 os.system("sudo pigpiod")
@@ -103,26 +103,26 @@ while not done:
             if(i==0):
                 if(axis<0):
                     print("kol sola doğru:" + str(abs(axis)) + "değeri kadar itiliyor.")
-                    motors.run_counterclockwise(abs(axis))
+                    motors_with_pigpio.run_counterclockwise(abs(axis))
                 if(axis>0):
                     print("kol sağa doğru:" + str(abs(axis)) + "değeri kadar itiliyor.")
-                    motors.run_clockwise(abs(axis))
+                    motors_with_pigpio.run_clockwise(abs(axis))
             
             elif(i==1):
                 if(axis<0):
                     print("kol ileri doğru:" + str(abs(axis)) + "değeri kadar itiliyor.")
-                    motors.run_counterclockwise(abs(axis))               
+                    motors_with_pigpio.run_counterclockwise(abs(axis))
                 if(axis>0):
                     print("kol geri doğru:" + str(abs(axis)) + "değeri kadar itiliyor.")
-                    motors.run_clockwise(abs(axis))
+                    motors_with_pigpio.run_clockwise(abs(axis))
 
             elif(i==2):
                 if(axis<0):
                     print("3. joystick yukarı doğru :" + str(abs(axis)) + "değeri kadar")
-                    motors.run_counterclockwise(abs(axis))              
+                    motors_with_pigpio.run_counterclockwise(abs(axis))
                 if(axis>0):
                     print("3. joystick aşağı doğru :" + str(abs(axis)) + "değeri kadar") 
-                    motors.run_clockwise(abs(axis))
+                    motors_with_pigpio.run_clockwise(abs(axis))
 
 
     #motors.run_clockwise(x_axes)

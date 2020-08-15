@@ -1,11 +1,11 @@
 import tkinter as tk
 from queue import Queue
 from random import randint
-from threading import Thread
+from threading import Thread, Lock
 from tkinter import font as tkfont
 
 from joystick import joystick_control
-# from lidars import lidar_control
+from lidars import lidar_control
 from motors_with_cart import motor_xy_control, motor_z_control
 
 
@@ -274,10 +274,20 @@ def update_from_joystick(frame):
         threads[key] = Thread(target=targets[key], args=(queues[key],))
         threads[key].start()
 
+    # Lidars variables are creating
+    lidars_lock = Lock()
+    lidars_values = {}
+    lidars_ports = {"front": "/dev/ttyUSB0", "left": "/dev/ttyUSB1", "right": "/dev/ttyUSB2"}
+    th = Thread(target=lidar_control, args=(lidars_lock, lidars_values, lidars_ports,))
+    th.start()
+    # Lidars variables are created
+
     while True:
+        with lidars_lock:
+            frame.update_lidar_values(lidars_values)
+
         joystick_value = queues["joystick"].get()
         print(joystick_value)
-        # frame.update_lidar_values(queues["lidar"].get())
         queues["motor_xy"].put(joystick_value)
         queues["motor_z"].put(joystick_value["z_axes"])
 

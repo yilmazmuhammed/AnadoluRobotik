@@ -1,5 +1,5 @@
 from denemeler.joystick.my import Joystick
-from motors import RovMovement
+from motors_with_pigpio import RovMovement
 
 if __name__ == '__main__':
     rov_movement = RovMovement(xy_lf_pin=0, xy_rf_pin=0, xy_lb_pin=0, xy_rb_pin=0,
