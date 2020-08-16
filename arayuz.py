@@ -242,9 +242,9 @@ class ObservationPage(tk.Frame):
         self.right_camera_label.grid(row=1, column=1, padx=10)
         cameras_frame.grid(row=1, column=0, columnspan=3, padx=10, pady=(70, 10))
 
-        #self.left_camera = CSI_Camera()  
-        #self.right_camera = CSI_Camera()  
-        #self.update_camera_thread()
+        self.left_camera = CSI_Camera()
+        self.right_camera = CSI_Camera()
+        self.update_camera_thread()
 
     #     self.count = 0
     #     self.controls_completed()
@@ -269,7 +269,7 @@ class ObservationPage(tk.Frame):
         _, left_frame = self.left_camera.read()
         _, right_frame = self.right_camera.read()
 
-        left_frame = imutils.resize(left_frame, width=480, height=360)
+        # left_frame = imutils.resize(left_frame, width=480, height=360)
         left_cv2image = cv2.cvtColor(left_frame, cv2.COLOR_BGR2RGBA)
         left_img = Image.fromarray(left_cv2image)
         left_imgtk = ImageTk.PhotoImage(image=left_img)
@@ -286,9 +286,9 @@ class ObservationPage(tk.Frame):
 
 
     def update_camera_thread(self):
-        self.left_camera.open(gstreamer_pipeline(sensor_id=0, sensor_mode=3, flip_method=0, display_height=540, display_width=960    ,))
+        self.left_camera.open(gstreamer_pipeline(sensor_id=0, sensor_mode=3, flip_method=0, display_height=360, display_width=480    ,))
         self.left_camera.start()
-        self.right_camera.open(gstreamer_pipeline(sensor_id=1, sensor_mode=3, flip_method=0, display_height=540, display_width=960,))
+        self.right_camera.open(gstreamer_pipeline(sensor_id=1, sensor_mode=3, flip_method=0, display_height=360, display_width=480,))
         self.right_camera.start()
 
         if not self.left_camera.video_capture.isOpened() or not self.right_camera.video_capture.isOpened():
