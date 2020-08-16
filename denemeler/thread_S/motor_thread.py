@@ -1,13 +1,15 @@
+from datetime import datetime
 from queue import Queue
-from threading import Thread
+from threading import Thread, Lock
 from time import sleep
-
 
 class Motor:
     def __init__(self, pin):
         self.throttle = 0
         self.pin = pin
         self.queue = Queue()
+        self.lock = Lock()
+        self.running = True
         self.thread = Thread(target=self.motor_thread, args=(self.queue,))
         self.thread.start()
 
@@ -16,17 +18,21 @@ class Motor:
         throttle = 0
         slp = 0.00
         pin = self.pin
-        while True:
-            throttle = queue.get()
+        while self.running:
+            # sleep(0.01)
+            # throttle = queue.get()
+            # with self.lock:
+            self.lock.acquire()
+            throttle = self.throttle
             if prev_power == throttle:
                 continue
             elif prev_power < throttle:
                 for i in range(prev_power + 1, throttle + 1):
-                    print("Thread %s:" % pin, i / 100)
+                    # print("Thread %s:" % pin, i / 100)
                     sleep(slp)
             else:
                 for i in range(prev_power - 1, throttle - 1, -1):
-                    print("Thread %s:" % pin, i / 100)
+                    # print("Thread %s:" % pin, i / 100)
                     sleep(slp)
             prev_power = throttle
 
@@ -34,17 +40,20 @@ class Motor:
 class Rov:
     def __init__(self):
         self.l = []
-        for i in range(4):
+        for i in range(8):
             self.l.append(Motor(i))
 
     def change_throttle(self, t):
         for m in self.l:
-            m.queue.put(t)
-            # m.throttle = t
+            print("\t\t", datetime.now())
+            # m.queue.put(t)
+            m.throttle = t
+            m.lock.release()
 
 
 if __name__ == '__main__':
     r = Rov()
-    for i in range(1000):
+    for i in range(100):
+        print(datetime.now())
         r.change_throttle(i)
-        # sleep(0.01)
+        sleep(0.01)

@@ -2,6 +2,7 @@ import math
 from queue import Queue
 from threading import Thread, Lock
 from time import sleep
+import datetime
 from adafruit_servokit import ServoKit
 
 kit = ServoKit(channels=16)
@@ -29,24 +30,26 @@ class ContinuousRotationServo:
         self.thread.start()
 
     def motor_thread(self, queue):
-        slp = 0.02
+        slp = 0.01
         prev_power = 0
         throttle = 0
         control = self.control
         while True:
             # throttle = queue.get()
-            with self.lock:
-                throttle = self.throttle
-                if prev_power == throttle:
-                    continue
-                elif prev_power < throttle:
-                    for i in range(prev_power+1, throttle+1):
+            self.lock.acquire()
+            throttle = self.throttle
+            if prev_power == throttle:
+                continue
+            else:
+                if prev_power < throttle:
+                    for i in range(prev_power+1, throttle+1, 5):
                         control.throttle = i/100
                         sleep(slp)
                 else:
-                    for i in range(prev_power-1, throttle-1, -1):
+                    for i in range(prev_power-1, throttle-1, -5):
                         control.throttle = i/100
                         sleep(slp)
+                control.throttle = throttle/100
                 prev_power = throttle
 
     def motor_initialize(self):
@@ -58,8 +61,11 @@ class ContinuousRotationServo:
                       positive values​make it work forward.
         :return:
         """
-        with self.lock:
-            self.throttle = power
+        try:
+            self.lock.release()
+        except:
+            pass
+        self.throttle = power
         # self.queue.put(power)
 
     def run_clockwise(self, power):
@@ -136,9 +142,13 @@ class RovMovement:
         mp = 30
         for i in list(range(0, mp)) + list(range(mp, -mp, -1)) + list(range(-mp, 1)):
             print("Power:", i)
+            print(datetime.datetime.now())
             for motor in self.all_motors_list:
+                #print(datetime.datetime.now())
+                #print("for un altı")
                 motor.run_bidirectional(i)
-                sleep(0.01)
+                #print("bidirectionun altı")
+            sleep(0.01)
         print("All motors initialized...")
 
     def go_up(self, power):
