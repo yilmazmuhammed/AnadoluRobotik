@@ -4,6 +4,7 @@ from queue import Queue
 
 import serial
 import time
+import os
 
 
 class Lidar:
@@ -83,9 +84,13 @@ class Lidar:
 
 
 def lidar_control(lock, values, ports):
+    sudoPassword = "att"
     lidars = {}
     for key in ports:
+        print('echo %s|sudo -S chmod 777 %s' % (sudoPassword, ports[key]))
+        os.system('echo %s|sudo -S chmod 777 %s' % (sudoPassword, ports[key]))
         lidars[key] = Lidar(ports[key])
+
     # lidars = {
     #     "front": Lidar("/dev/ttyUSB0"),
     #     "left": Lidar("/dev/ttyUSB1"),
@@ -107,12 +112,13 @@ def lidar_control(lock, values, ports):
 if __name__ == '__main__':
     tl = threading.Lock()
     tv = {}
-    ports = {"front": "/dev/ttyUSB0", "left": "/dev/ttyUSB1", "right": "/dev/ttyUSB2"}
+    ports = {"front": "/dev/ttyUSB0", "left": "/dev/ttyUSB1", "right": "/dev/ttyUSB2", "bottom": "/dev/ttyTHS1"}
     th = threading.Thread(target=lidar_control, args=(tl, tv, ports))
     th.start()
     try:
         while True:
             with tl:
+                #pass
                 print(tv)
     except KeyboardInterrupt:  # Ctrl+C
         th.join()

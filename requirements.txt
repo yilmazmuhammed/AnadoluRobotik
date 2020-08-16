@@ -5,6 +5,7 @@ pygame~=1.9.6
 # sudo apt-get install libfreetype6-dev
 getch
 pyserial~=3.4
-numpy~=1.19.0
-pigpio~=1.46
+# numpy~=1.19.0
 pillow
+adafruit-circuitpython-servokit
+imutils

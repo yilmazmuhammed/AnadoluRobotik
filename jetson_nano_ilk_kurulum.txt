@@ -1,0 +1,24 @@
+sudo apt update && sudo apt upgrade && sudo apt autoremove
+
+NoMachine (Jetson Nano = ARMv8):
+https://www.nomachine.com/download/linux&id=30&s=ARM
+İndirme: https://www.nomachine.com/download/download&id=111&s=ARM
+Kurulum: sudo dpkg -i nomachine_6.11.2_1_arm64.deb
+
+NoMachine için ekran çözünürlüğü ayarlama
+https://forums.developer.nvidia.com/t/jetson-tx1-desktop-sharing-resolution-problem-without-real-monitor/48041/11
+
+NoMachine joystick'i paylaşma
+NoMachine sağ üst köşeden sayfayı döndür
+Devices > USB > joystick'i bağla
+
+Python3 paketlerini yüklemek için:
+sudo apt install python3-pip
+
+Python paketleri kurmak için:
+Hatalar için:
+sudo apt-get install python-dev libsdl-image1.2-dev libsdl-mixer1.2-dev libsdl-ttf2.0-dev libsdl1.2-dev libsmpeg-dev python-numpy subversion libportmidi-dev ffmpeg libswscale-dev libavformat-dev libavcodec-dev
+sudo apt-get install libfreetype6-dev
+pip3 install setuptools --upgrade
+pip3 install -r requirements.txt
+sudo apt install python3-tk

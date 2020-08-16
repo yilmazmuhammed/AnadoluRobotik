@@ -1,5 +1,28 @@
+# MIT License
+# Copyright (c) 2019,2020 JetsonHacks
+# See license
+# A very simple code snippet
+# Using two  CSI cameras (such as the Raspberry Pi Version 2) connected to a
+# NVIDIA Jetson Nano Developer Kit (Rev B01) using OpenCV
+# Drivers for the camera and OpenCV are included in the base image in JetPack 4.3+
+
+# This script will open a window and place the camera stream from each camera in a window
+# arranged horizontally.
+# The camera streams are each read in their own thread, as when done sequentially there
+# is a noticeable lag
+# For better performance, the next step would be to experiment with having the window display
+# in a separate thread
+
 import cv2
 import threading
+import numpy as np
+
+# gstreamer_pipeline returns a GStreamer pipeline for capturing from the CSI camera
+# Flip the image by setting the flip_method (most common values: 0 and 2)
+# display_width and display_height determine the size of each camera pane in the window on the screen
+
+left_camera = None
+right_camera = None
 
 
 class CSI_Camera:
@@ -107,3 +130,64 @@ def gstreamer_pipeline(
             display_height,
         )
     )
+
+
+def start_cameras():
+    left_camera = CSI_Camera()
+    left_camera.open(
+        gstreamer_pipeline(
+            sensor_id=0,
+            sensor_mode=3,
+            flip_method=0,
+            display_height=540,
+            display_width=960,
+        )
+    )
+    left_camera.start()
+
+    right_camera = CSI_Camera()
+    right_camera.open(
+        gstreamer_pipeline(
+            sensor_id=1,
+            sensor_mode=3,
+            flip_method=0,
+            display_height=540,
+            display_width=960,
+        )
+    )
+    right_camera.start()
+
+    cv2.namedWindow("CSI Cameras", cv2.WINDOW_AUTOSIZE)
+
+    if (
+        not left_camera.video_capture.isOpened()
+        or not right_camera.video_capture.isOpened()
+    ):
+        # Cameras did not open, or no camera attached
+
+        print("Unable to open any cameras")
+        # TODO: Proper Cleanup
+        SystemExit(0)
+
+    while cv2.getWindowProperty("CSI Cameras", 0) >= 0 :
+        
+        _ , left_image=left_camera.read()
+        _ , right_image=right_camera.read()
+        camera_images = np.hstack((left_image, right_image))
+        cv2.imshow("CSI Cameras", camera_images)
+
+        # This also acts as
+        keyCode = cv2.waitKey(30) & 0xFF
+        # Stop the program on the ESC key
+        if keyCode == 27:
+            break
+
+    left_camera.stop()
+    left_camera.release()
+    right_camera.stop()
+    right_camera.release()
+    cv2.destroyAllWindows()
+
+
+if __name__ == "__main__":
+    start_cameras()

@@ -10,7 +10,7 @@ from random import randint
 from threading import Thread, Lock
 from tkinter import font as tkfont
 
-from csi_camera import CSI_Camera
+from csi_camera import CSI_Camera, gstreamer_pipeline
 from joystick import joystick_control
 from lidars import lidar_control
 from motors_with_cart import motor_arm_control, motor_z_control, motor_xy_control
@@ -242,6 +242,10 @@ class ObservationPage(tk.Frame):
         self.right_camera_label.grid(row=1, column=1, padx=10)
         cameras_frame.grid(row=1, column=0, columnspan=3, padx=10, pady=(70, 10))
 
+        #self.left_camera = CSI_Camera()  
+        #self.right_camera = CSI_Camera()  
+        #self.update_camera_thread()
+
     #     self.count = 0
     #     self.controls_completed()
     #
@@ -261,7 +265,10 @@ class ObservationPage(tk.Frame):
         for key in values:
             self.lidar_labels[key]["text"] = values[key][0]
 
-    def update_cameras(self, left_frame, right_frame):
+    def update_cameras(self):
+        _, left_frame = self.left_camera.read()
+        _, right_frame = self.right_camera.read()
+
         left_frame = imutils.resize(left_frame, width=480, height=360)
         left_cv2image = cv2.cvtColor(left_frame, cv2.COLOR_BGR2RGBA)
         left_img = Image.fromarray(left_cv2image)
@@ -275,22 +282,24 @@ class ObservationPage(tk.Frame):
         right_imgtk = ImageTk.PhotoImage(image=right_img)
         self.right_camera_label.imgtk = right_imgtk
         self.right_camera_label.configure(image=right_imgtk)
+        self.after(10, self.update_cameras)
 
 
-def update_camera_thread(frame):
-    left_camera = CSI_Camera(sensor_id=0, sensor_mode=3, flip_method=0, display_height=540, display_width=960)
-    left_camera.start()
-    right_camera = CSI_Camera(sensor_id=1, sensor_mode=3, flip_method=0, display_height=540, display_width=960)
-    right_camera.start()
-    if not left_camera.video_capture.isOpened() or not right_camera.video_capture.isOpened():
-        # Cameras did not open, or no camera attached
-        raise Exception("Unable to open any cameras")
+    def update_camera_thread(self):
+        self.left_camera.open(gstreamer_pipeline(sensor_id=0, sensor_mode=3, flip_method=0, display_height=540, display_width=960    ,))
+        self.left_camera.start()
+        self.right_camera.open(gstreamer_pipeline(sensor_id=1, sensor_mode=3, flip_method=0, display_height=540, display_width=960,))
+        self.right_camera.start()
 
-    while True:
-        _, left_frame = left_camera.read()
-        _, right_frame = right_camera.read()
-        frame.update_cameras(left_frame=left_frame, right_frame=right_frame)
-        # sleep(0.05)
+        if not self.left_camera.video_capture.isOpened() or not self.right_camera.video_capture.isOpened():
+            # Cameras did not open, or no camera attached
+            raise Exception("Unable to open any cameras")
+        self.update_cameras()
+        #while True:
+        #    _, left_frame = left_camera.read()
+        #    _, right_frame = right_camera.read()
+        #    frame.update_cameras(left_frame=left_frame, right_frame=right_frame)
+        #    # sleep(0.05)
 
 
 def update_from_joystick(frame):
@@ -298,8 +307,8 @@ def update_from_joystick(frame):
 
     frame.baslat()
 
-    camera_thread = Thread(target=update_camera_thread, args=(frame,))
-    camera_thread.start()
+    #camera_thread = Thread(target=update_camera_thread, args=(frame,))
+    #camera_thread.start()
     # update_camera_thread(frame)
 
     # keys = ["joystick", "lidar", "motor_xy", "motor_z", "robotic_kol"]

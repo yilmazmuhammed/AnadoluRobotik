@@ -42,7 +42,7 @@ class ContinuousRotationServo:
                     sleep(slp)
             else:
                 print("asdasdasdads", prev_power, throttle)
-                for i in range(int(prev_power-1), int(throttle-1, -1)):
+                for i in range(int(prev_power-1), int(throttle-1), -1):
                     control.throttle = i/100
                     sleep(slp)
             prev_power = throttle
