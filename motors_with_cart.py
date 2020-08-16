@@ -110,8 +110,8 @@ class StandardServo:
 
     def motor_initialize(self):
         self.control = kit.servo[self.pin]
-        self.control.actuation_range = self.max_degree
-        self.control.set_pulse_width_range(self.min_freq, self.max_freq)
+        #self.control.actuation_range = self.max_degree
+        #self.control.set_pulse_width_range(self.min_freq, self.max_freq)
         self.change_angle(0)
 
     def change_angle(self, angle):
@@ -271,7 +271,7 @@ def motor_z_control(que):
 def motor_arm_control(que):
     print("motor_arm_control thread oluşturuldu.")
     while True:
-        power = que.get()*100
+        power = int(que.get())
         if power == -1 and rov_movement.arm_status == True:
             print("rov_movement.close_arm()")
             rov_movement.close_arm()
