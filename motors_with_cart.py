@@ -1,6 +1,6 @@
 import math
 from queue import Queue
-from threading import Thread
+from threading import Thread, Lock
 from time import sleep
 from adafruit_servokit import ServoKit
 
@@ -23,6 +23,8 @@ class ContinuousRotationServo:
         self.motor_initialize()
 
         self.queue = Queue()
+        self.throttle = 0
+        self.lock = Lock()
         self.thread = Thread(target=self.motor_thread, args=(self.queue,))
         self.thread.start()
 
@@ -32,20 +34,20 @@ class ContinuousRotationServo:
         throttle = 0
         control = self.control
         while True:
-            throttle = queue.get()
-            if prev_power == throttle:
-                continue
-            elif prev_power < throttle:
-                print("asdasdasdads", prev_power, throttle)
-                for i in range(int(prev_power+1), int(throttle+1)):
-                    control.throttle = i/100
-                    sleep(slp)
-            else:
-                print("asdasdasdads", prev_power, throttle)
-                for i in range(int(prev_power-1), int(throttle-1), -1):
-                    control.throttle = i/100
-                    sleep(slp)
-            prev_power = throttle
+            # throttle = queue.get()
+            with self.lock:
+                throttle = self.throttle
+                if prev_power == throttle:
+                    continue
+                elif prev_power < throttle:
+                    for i in range(prev_power+1, throttle+1):
+                        control.throttle = i/100
+                        sleep(slp)
+                else:
+                    for i in range(prev_power-1, throttle-1, -1):
+                        control.throttle = i/100
+                        sleep(slp)
+                prev_power = throttle
 
     def motor_initialize(self):
         self.control = kit.continuous_servo[self.pin]
@@ -56,7 +58,9 @@ class ContinuousRotationServo:
                       positive values​make it work forward.
         :return:
         """
-        self.queue.put(power)
+        with self.lock:
+            self.throttle = power
+        # self.queue.put(power)
 
     def run_clockwise(self, power):
         """
@@ -148,14 +152,14 @@ class RovMovement:
             motor.run_counterclockwise(power_per_motor)
 
     def turn_left(self, power):
-        power_per_motor = power / 4
+        power_per_motor = int(power / 4)
         self.xy_rf.run_clockwise(power_per_motor)
         self.xy_lf.run_counterclockwise(power_per_motor)
         self.xy_lb.run_clockwise(power_per_motor)
         self.xy_rb.run_counterclockwise(power_per_motor)
 
     def turn_right(self, power):
-        power_per_motor = power / 4
+        power_per_motor = int(power / 4)
         self.xy_rf.run_counterclockwise(power_per_motor)
         self.xy_lf.run_clockwise(power_per_motor)
         self.xy_lb.run_counterclockwise(power_per_motor)
