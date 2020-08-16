@@ -112,7 +112,12 @@ def lidar_control(lock, values, ports):
 if __name__ == '__main__':
     tl = threading.Lock()
     tv = {}
-    ports = {"front": "/dev/ttyUSB0", "left": "/dev/ttyUSB1", "right": "/dev/ttyUSB2", "bottom": "/dev/ttyTHS1"}
+    ports = {
+        "front": "/dev/ttyUSB0",
+        "left": "/dev/ttyUSB1",
+        "right": "/dev/ttyUSB2",
+        "bottom": "/dev/ttyTHS1"
+    }
     th = threading.Thread(target=lidar_control, args=(tl, tv, ports))
     th.start()
     try:

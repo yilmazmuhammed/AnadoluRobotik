@@ -313,7 +313,7 @@ def update_from_joystick(frame):
 
     # keys = ["joystick", "lidar", "motor_xy", "motor_z", "robotic_kol"]
     targets = {
-        "joystick": joystick_control,
+        # "joystick": joystick_control,
         # "lidar": lidar_control,
         "motor_xy": motor_xy_control,
         "motor_z": motor_z_control,
@@ -335,15 +335,20 @@ def update_from_joystick(frame):
     th.start()
     # Lidars variables are created
 
+    # Joystick variables are creating
+    joystick_values = {}
+    th = Thread(target=joystick_control, args=(joystick_values,))
+    th.start()
+    # Lidars variables are created
+
     while True:
         with lidars_lock:
             frame.update_lidar_values(lidars_values)
 
-        joystick_value = queues["joystick"].get()
-        print(joystick_value)
-        queues["motor_xy"].put(joystick_value)
-        queues["motor_z"].put(joystick_value["z_axes"])
-        queues["motor_arm"].put(joystick_value["robotik_kol"])
+        print(joystick_values)
+        queues["motor_xy"].put(joystick_values)
+        queues["motor_z"].put(joystick_values["z_axes"])
+        queues["motor_arm"].put(joystick_values["robotik_kol"])
 
         pass
 

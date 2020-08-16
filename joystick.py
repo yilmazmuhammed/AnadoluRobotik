@@ -193,11 +193,10 @@ class Joystick:
         pygame.quit()
 
 
-
-def joystick_control(que):
-
+def joystick_control(values):
     Joy_obj = Joystick()
-    print(Joy_obj.done)
+
+    values = Joy_obj.shared_obj.ret_dict
 
     while 0==Joy_obj.done:
         #print("1asd")
@@ -223,16 +222,15 @@ def joystick_control(que):
             #Joy_obj.buttons()
             #if Joy_obj.button_pressed == 1:
             # print(Joy_obj.shared_obj.ret_dict)
-            que.put(Joy_obj.shared_obj.ret_dict)
+            values = Joy_obj.shared_obj.ret_dict
             sleep(0.1)
         Joy_obj.clock.tick(50)
 
     Joy_obj.quit()
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     Joy_obj = Joystick()
-    print(Joy_obj.done)
 
     while 0==Joy_obj.done:
         #print("1asd")

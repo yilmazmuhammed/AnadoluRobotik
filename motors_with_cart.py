@@ -41,11 +41,11 @@ class ContinuousRotationServo:
             if prev_power == throttle:
                 continue
             else:
-                if prev_power < throttle:
+                if throttle - prev_power > 5:
                     for i in range(prev_power+1, throttle+1, 5):
                         control.throttle = i/100
                         sleep(slp)
-                else:
+                elif prev_power - throttle > 5:
                     for i in range(prev_power-1, throttle-1, -5):
                         control.throttle = i/100
                         sleep(slp)
