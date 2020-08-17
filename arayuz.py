@@ -3,7 +3,6 @@ from time import sleep
 import cv2
 import tkinter as tk
 
-import imutils
 from PIL import Image, ImageTk
 from queue import Queue
 from random import randint
@@ -332,14 +331,14 @@ def update_from_joystick(frame):
     lidars_lock = Lock()
     lidars_values = {}
     lidars_ports = {"front": "/dev/ttyUSB0", "left": "/dev/ttyUSB1", "right": "/dev/ttyUSB2", "bottom": "/dev/ttyTHS1"}
-    th = Thread(target=lidar_control, args=(lidars_lock, lidars_values, lidars_ports,))
-    th.start()
+    lidars_thread = Thread(target=lidar_control, args=(lidars_lock, lidars_values, lidars_ports,))
+    lidars_thread.start()
     # Lidars variables are created
 
     # Joystick variables are creating
     joystick_values = {}
-    th = Thread(target=joystick_control, args=(joystick_values,))
-    th.start()
+    joystick_thread = Thread(target=joystick_control, args=(joystick_values,))
+    joystick_thread.start()
     # Lidars variables are created
 
     while True:
