@@ -275,34 +275,23 @@ class ObservationPage(tk.Frame):
     def baslat(self):
         self.joystick_value_label["text"] = "Açık"
 
-    def update_lidar_values(self, values: dict):
-        for key in values:
-            self.lidar_labels[key]["text"] = values[key][0]
-
     def update_cameras(self):
-        print("left öncesi", datetime.now())
         _, left_frame = self.left_camera.read()
-        print("right öncesi", datetime.now())
         _, right_frame = self.right_camera.read()
-        print("right sonrası", datetime.now())
 
         # left_frame = imutils.resize(left_frame, width=480, height=360)
         left_cv2image = cv2.cvtColor(left_frame, cv2.COLOR_BGR2RGBA)
         left_img = Image.fromarray(left_cv2image)
         left_imgtk = ImageTk.PhotoImage(image=left_img)
-        print("left tkinter dönüşümü sonrası", datetime.now())
         self.left_camera_label.imgtk = left_imgtk
         self.left_camera_label.configure(image=left_imgtk)
-        print("left tkinter yerine koyma sonrası", datetime.now())
 
         # right_frame = imutils.resize(right_frame, width=480, height=360)
         right_cv2image = cv2.cvtColor(right_frame, cv2.COLOR_BGR2RGBA)
         right_img = Image.fromarray(right_cv2image)
         right_imgtk = ImageTk.PhotoImage(image=right_img)
-        print("right tkinter dönüşümü sonrası", datetime.now())
         self.right_camera_label.imgtk = right_imgtk
         self.right_camera_label.configure(image=right_imgtk)
-        print("right tkinter yerine koyma sonrası", datetime.now())
 
         self.after(50, self.update_cameras)
 
@@ -323,7 +312,20 @@ class ObservationPage(tk.Frame):
         #    _, right_frame = right_camera.read()
         #    frame.update_cameras(left_frame=left_frame, right_frame=right_frame)
         #    # sleep(0.05)
+    def destroy(self):
+        print("Kameralar kapatılıyor...")
+        self.left_camera.stop()
+        self.left_camera.release()
+        self.right_camera.stop()
+        self.right_camera.release()
+        print("Kameralar kapatıldı...")
+        self.after(30, super().destroy)
 
+def update_lidar_values(frame, values: dict):
+    for key in values:
+        print("update_lidar_values:", key)
+        frame.lidar_labels[key]["text"] = values[key][0]
+    print("update_lidar_values bitti")
 
 def joystick_control(values):
     Joy_obj = Joystick()
@@ -392,7 +394,7 @@ def motor_arm_control(que):
             rov_movement.close_arm()
         elif power == 1 and rov_movement.arm_status == False:
             rov_movement.open_arm()
-
+    print("motor_arm_control bitti")
 
 def lidar_control(lock, values, ports):
     sudoPassword = "att"
@@ -405,11 +407,16 @@ def lidar_control(lock, values, ports):
         lidars[i].start()
     global arayuz_running
     while arayuz_running:
+        print("lidar loop")
         with lock:
+            print("lidar loop lock")
             for key in lidars:
+                print("lidar loop lock", key)
                 values[key] = lidars[key].get_data()
-
+        
+        print("lidar loop sonu")
     for i in lidars:
+        print(i, "lidar lards thread stop()")
         lidars[i].stop()
 
 
@@ -456,18 +463,26 @@ def update_from_joystick(frame):
 
     global arayuz_running
     while arayuz_running:
+        print("- arayuz_running:", arayuz_running)
         with lidars_lock:
-            frame.update_lidar_values(lidars_values)
-
+            print("lidar lock'un içinde")
+            update_lidar_values(frame, lidars_values)
+        print("lidarları geçti")
         # print(joystick_values)
-        queues["motor_xy"].put(joystick_values)
-        queues["motor_z"].put(joystick_values["z_axes"])
-        queues["motor_arm"].put(joystick_values["robotik_kol"])
+        if joystick_values != {}:
+            queues["motor_xy"].put(joystick_values)
+            queues["motor_z"].put(joystick_values["z_axes"])
+            queues["motor_arm"].put(joystick_values["robotik_kol"])
 
+        print("+ arayuz_running:", arayuz_running)
         pass
 
     for key in threads:
         print(key, "thread bekleniyor...")
+        if key == "motor_xy":
+             queues[key].put({"xy_plane":{"magnitude":0, "angel":0},"turn_itself":0})
+        elif key == "motor_z":
+             queues[key].put(0)
         threads[key].join()
         print(key, "thread bitti...")
 

@@ -78,9 +78,11 @@ class Lidar:
 
     def stop(self):
         if self.running:
+            print(self.tty_port, "kapatılıyor...")
             self.running = False
-            self.serial_port.close()
             self.read_thread.join()
+            self.serial_port.close()
+            print(self.tty_port, "kapatıldı...")
 
 
 if __name__ == '__main__':

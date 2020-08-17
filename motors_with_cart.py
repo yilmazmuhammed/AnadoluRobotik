@@ -97,9 +97,17 @@ class ContinuousRotationServo:
             self.run_counterclockwise(-power)
 
     def stop(self):
+        print(self.pin, "motor stop...")
         if self.running:
+            print(self.pin, "motor kapatılıyor...")
             self.running = False
+            self.throttle = 0
+            try:
+                self.lock.release()
+            except:
+                pass
             self.thread.join()
+            print(self.pin, "motor kapatıldı...")
 
 
 class StandardServo:
