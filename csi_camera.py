@@ -22,7 +22,7 @@ class CSI_Camera:
             self.video_capture = cv2.VideoCapture(
                 gstreamer_pipeline_string, cv2.CAP_GSTREAMER
             )
-            
+
         except RuntimeError:
             self.video_capture = None
             print("Unable to open camera")
@@ -52,18 +52,17 @@ class CSI_Camera:
             try:
                 grabbed, frame = self.video_capture.read()
                 with self.read_lock:
-                    self.grabbed=grabbed
-                    self.frame=frame
+                    self.grabbed = grabbed
+                    self.frame = frame
             except RuntimeError:
                 print("Could not read image from camera")
         # FIX ME - stop and cleanup thread
         # Something bad happened
-        
 
     def read(self):
         with self.read_lock:
             frame = self.frame.copy()
-            grabbed=self.grabbed
+            grabbed = self.grabbed
         return grabbed, frame
 
     def release(self):

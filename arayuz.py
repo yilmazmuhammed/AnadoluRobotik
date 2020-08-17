@@ -1,3 +1,4 @@
+from datetime import datetime
 from time import sleep
 
 import cv2
@@ -265,22 +266,30 @@ class ObservationPage(tk.Frame):
             self.lidar_labels[key]["text"] = values[key][0]
 
     def update_cameras(self):
+        print("left öncesi", datetime.now())
         _, left_frame = self.left_camera.read()
+        print("right öncesi", datetime.now())
         _, right_frame = self.right_camera.read()
+        print("right sonrası", datetime.now())
 
         # left_frame = imutils.resize(left_frame, width=480, height=360)
         left_cv2image = cv2.cvtColor(left_frame, cv2.COLOR_BGR2RGBA)
         left_img = Image.fromarray(left_cv2image)
         left_imgtk = ImageTk.PhotoImage(image=left_img)
+        print("left tkinter dönüşümü sonrası", datetime.now())
         self.left_camera_label.imgtk = left_imgtk
         self.left_camera_label.configure(image=left_imgtk)
+        print("left tkinter yerine koyma sonrası", datetime.now())
 
         # right_frame = imutils.resize(right_frame, width=480, height=360)
         right_cv2image = cv2.cvtColor(right_frame, cv2.COLOR_BGR2RGBA)
         right_img = Image.fromarray(right_cv2image)
         right_imgtk = ImageTk.PhotoImage(image=right_img)
+        print("right tkinter dönüşümü sonrası", datetime.now())
         self.right_camera_label.imgtk = right_imgtk
         self.right_camera_label.configure(image=right_imgtk)
+        print("right tkinter yerine koyma sonrası", datetime.now())
+
         self.after(50, self.update_cameras)
 
     def update_camera_thread(self):
@@ -345,7 +354,7 @@ def update_from_joystick(frame):
         with lidars_lock:
             frame.update_lidar_values(lidars_values)
 
-        print(joystick_values)
+        # print(joystick_values)
         queues["motor_xy"].put(joystick_values)
         queues["motor_z"].put(joystick_values["z_axes"])
         queues["motor_arm"].put(joystick_values["robotik_kol"])

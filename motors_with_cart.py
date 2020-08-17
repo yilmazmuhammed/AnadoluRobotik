@@ -119,7 +119,7 @@ class StandardServo:
 
 
 class RovMovement:
-    def __init__(self, xy_lf_pin, xy_rf_pin, xy_lb_pin, xy_rb_pin, z_lf_pin, z_rf_pin, z_lb_pin, z_rb_pin, arm_pin):
+    def __init__(self, xy_lf_pin, xy_rf_pin, xy_lb_pin, xy_rb_pin, z_lf_pin, z_rf_pin, z_lb_pin, z_rb_pin, arm_pin, initialize_motors=True):
         self.xy_lf = ContinuousRotationServo(xy_lf_pin)
         self.xy_rf = ContinuousRotationServo(xy_rf_pin)
         self.xy_lb = ContinuousRotationServo(xy_lb_pin)
@@ -134,7 +134,8 @@ class RovMovement:
         self.all_motors_list = self.z_motors_list + self.xy_motors_list
         self.arm_status = False
         self.open_arm()
-        self._initialize_motors()
+        if initialize_motors:
+            self._initialize_motors()
         sleep(2)
 
     def _initialize_motors(self):
@@ -233,7 +234,9 @@ class RovMovement:
 
 
 rov_movement = RovMovement(xy_lf_pin=0, xy_rf_pin=1, xy_lb_pin=3, xy_rb_pin=2,
-                           z_lf_pin=7, z_rf_pin=6, z_lb_pin=4, z_rb_pin=5, arm_pin=8)
+                           z_lf_pin=7, z_rf_pin=6, z_lb_pin=4, z_rb_pin=5, arm_pin=8,
+                           initialize_motors=False
+                           )
 
 
 def motor_xy_control(que):
@@ -268,10 +271,8 @@ def motor_arm_control(que):
     while True:
         power = int(que.get())
         if power == -1 and rov_movement.arm_status == True:
-            print("rov_movement.close_arm()")
             rov_movement.close_arm()
         elif power == 1 and rov_movement.arm_status == False:
-            print("rov_movement.open_arm()")
             rov_movement.open_arm()
 
 
