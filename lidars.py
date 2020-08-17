@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*
 from threading import Thread, Lock
-from queue import Queue
+from time import sleep
 
 import serial
-import time
 import os
 
 
@@ -128,6 +127,7 @@ class RovLidars:
                 values[key] = self._lidars[key].get_data()
             with self._read_lock:
                 self._values.update(values)
+            sleep(0.1)
 
     def get_values(self):
         with self._read_lock:
@@ -147,24 +147,6 @@ if __name__ == '__main__':
     try:
         while True:
             print(rov_lidars.get_values())
-            time.sleep(0.1)
+            sleep(0.1)
     except KeyboardInterrupt:
         rov_lidars.stop()
-    pass
-    # tl = threading.Lock()
-    # tv = {}
-    # ports = {
-    #     "front": "/dev/ttyUSB0",
-    #     "left": "/dev/ttyUSB1",
-    #     "right": "/dev/ttyUSB2",
-    #     "bottom": "/dev/ttyTHS1"
-    # }
-    # th = threading.Thread(target=lidar_control, args=(tl, tv, ports))
-    # th.start()
-    # try:
-    #     while True:
-    #         with tl:
-    #             #pass
-    #             print(tv)
-    # except KeyboardInterrupt:  # Ctrl+C
-    #     th.join()

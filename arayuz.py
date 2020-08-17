@@ -1,5 +1,3 @@
-import os
-from datetime import datetime
 from time import sleep
 
 import cv2
@@ -8,12 +6,12 @@ import tkinter as tk
 from PIL import Image, ImageTk
 from queue import Queue
 from random import randint
-from threading import Thread, Lock
+from threading import Thread
 from tkinter import font as tkfont
 
 from csi_camera import CSI_Camera, gstreamer_pipeline
 from joystick import Joystick
-from lidars import Lidar, RovLidars
+from lidars import RovLidars
 from motors_with_cart import RovMovement
 
 arayuz_running = True
@@ -270,18 +268,6 @@ class ObservationPage(tk.Frame):
         self.rov_lidars.start()
         self.update_lidars_values()
 
-    #     self.count = 0
-    #     self.controls_completed()
-    #
-    # def controls_completed(self):
-    #     print("controls_completed")
-    #
-    #     if self.count == 1000:  # TODO control
-    #         return
-    #     self.count += 1
-    #     print(self.count)
-    #     self.after(30, self.controls_completed)
-
     def baslat(self):
         self.joystick_value_label["text"] = "Açık"
 
@@ -333,13 +319,6 @@ class ObservationPage(tk.Frame):
         print("Kameralar kapatıldı...")
         self.rov_lidars.stop()
         self.after(30, super().destroy)
-
-
-# def update_lidar_values(frame, values: dict):
-#     for key in values:
-#         print("update_lidar_values:", key)
-#         frame.lidar_labels[key]["text"] = values[key][0]
-#     print("update_lidar_values bitti")
 
 
 def joystick_control(values):
@@ -412,43 +391,14 @@ def motor_arm_control(que):
     print("motor_arm_control bitti")
 
 
-# def lidar_control(lock, values, ports):
-#     sudoPassword = "att"
-#     lidars = {}
-#     for key in ports:
-#         os.system('echo %s|sudo -S chmod 777 %s' % (sudoPassword, ports[key]))
-#         lidars[key] = Lidar(ports[key])
-#
-#     for i in lidars:
-#         lidars[i].start()
-#     global arayuz_running
-#     while arayuz_running:
-#         print("lidar loop")
-#         with lock:
-#             print("lidar loop lock")
-#             for key in lidars:
-#                 print("lidar loop lock", key)
-#                 values[key] = lidars[key].get_data()
-#
-#         print("lidar loop sonu")
-#     for i in lidars:
-#         print(i, "lidar lards thread stop()")
-#         lidars[i].stop()
-
-
 def update_from_joystick(frame):
     print("Thrade oluşturuldu")
 
     frame.baslat()
 
-    # camera_thread = Thread(target=update_camera_thread, args=(frame,))
-    # camera_thread.start()
-    # update_camera_thread(frame)
-
-    # keys = ["joystick", "lidar", "motor_xy", "motor_z", "robotic_kol"]
+    # keys = ["joystick", "motor_xy", "motor_z", "robotic_kol"]
     targets = {
         # "joystick": joystick_control,
-        # "lidar": lidar_control,
         "motor_xy": motor_xy_control,
         "motor_z": motor_z_control,
         "motor_arm": motor_arm_control
@@ -461,29 +411,16 @@ def update_from_joystick(frame):
         threads[key] = Thread(target=targets[key], args=(queues[key],))
         threads[key].start()
 
-    # # Lidars variables are creating
-    # lidars_lock = Lock()
-    # lidars_values = {}
-    # lidars_ports = {"front": "/dev/ttyUSB0", "left": "/dev/ttyUSB1", "right": "/dev/ttyUSB2", "bottom": "/dev/ttyTHS1"}
-    # lidars_thread = Thread(target=lidar_control, args=(lidars_lock, lidars_values, lidars_ports,))
-    # lidars_thread.start()
-    # threads["lidars"] = lidars_thread
-    # # Lidars variables are created
-
     # Joystick variables are creating
     joystick_values = {}
     joystick_thread = Thread(target=joystick_control, args=(joystick_values,))
     joystick_thread.start()
     threads["joystick"] = joystick_thread
-    # Lidars variables are created
+    # Joystick variables are created
 
     global arayuz_running
     while arayuz_running:
         print("- arayuz_running:", arayuz_running)
-        # with lidars_lock:
-        #     print("lidar lock'un içinde")
-        #     update_lidar_values(frame, lidars_values)
-        # print("lidarları geçti")
         # print(joystick_values)
         if joystick_values != {}:
             queues["motor_xy"].put(joystick_values)

@@ -5,17 +5,17 @@
 - TODO Motor xy, z, arm thread'lerinde queue yerine kilit ve değişken kullan
 
 ARAYÜZ
-- TODO Arayüz kapanırken frame'in update_lidar_values fonksipnunda takılıyor.
 - TODO hareket yönü, açısı ve gücünü göster
 - TODO Bileşenlerin hazır olup olmadığının kontrolü
 - TODO Açılışta motor initilize arayüzden önce çalışıyor, eşzamanla
 
-- TEST Joystick takılı değilse program donuyor - 2020.08.17 01:17
-
 - DONE Robotik kol çalıştırılacak - 2020.08.16  22:25
-- DONE Arayüz kapanınca bütün threadleri bitir. - 2020.08.17 18:30 
+- DONE Joystick takılı değilse program donuyor - 2020.08.17 ~13:00
+- DONE Arayüz kapanınca bütün threadleri bitir. - 2020.08.17 18:30
 - DONE Motorlar ileri itince ve geri itince aynı yöne çalışıyor, düzeltilecek - 2020.08.17 19:30
 - DONE xy motorlarının çalışması kontrol edilecek - 2020.08.17 19:30
+- DONE Arayüz kapanırken frame'in update_lidar_values fonksipnunda takılıyor. - 2020.08.17 21.30
+
 
             ---------- HAVUZ TESTLERİ (19-25 Ağustos) ----------
 - TODO Su altı görüntü alma
