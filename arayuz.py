@@ -273,8 +273,14 @@ class ObservationPage(tk.Frame):
 
     def update_lidars_values(self):
         values = self.rov_lidars.get_values()
-        for key in values:
-            self.lidar_labels[key]["text"] = values[key][0]
+        try:
+            for key in values:
+                self.lidar_labels[key]["text"] = values[key][0]
+        except Exception as e:
+            print("\n\n\n\n")
+            print("Exception in update_lidars_values():")
+            print(e)
+            print("\n\n\n\n")
         self.after(50, self.update_lidars_values)
 
     def update_cameras(self):
@@ -434,7 +440,7 @@ def update_from_joystick(frame):
         print(key, "thread bekleniyor...")
         if key == "motor_xy":
             queues[key].put({"xy_plane": {"magnitude": 0, "angel": 0}, "turn_itself": 0})
-        elif key == "motor_z":
+        elif key in ["motor_z", "motor_arm"]:
             queues[key].put(0)
         threads[key].join()
         print(key, "thread bitti...")
