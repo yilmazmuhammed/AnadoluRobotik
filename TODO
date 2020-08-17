@@ -9,6 +9,7 @@
 - TODO Arayüze entegre edilmiş kamera görüntüsünde gecikme düzeltilecek
 
 ARAYÜZ
+- TODO Arayüz kapanırken frame'in update_lidar_values fonksipnunda takılıyor.
 - TODO hareket yönü, açısı ve gücünü göster
 - TODO Bileşenlerin hazır olup olmadığının kontrolü
 - TODO Açılışta arayüzden önce motor initilize çalışıyor, eşzamanla
@@ -17,3 +18,4 @@ ARAYÜZ
 - TEST Joystick takılı değilse program donuyor - 2020.08.17 01:17
 
 - DONE Robotik kol çalıştırılacak - 2020.08.16  22:25
+- DONE Arayüz kapanınca bütün threadleri bitir. - 2020.08.17 18:30 
