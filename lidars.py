@@ -83,40 +83,22 @@ class Lidar:
             self.read_thread.join()
 
 
-def lidar_control(lock, values, ports):
-    sudoPassword = "att"
-    lidars = {}
-    for key in ports:
-        os.system('echo %s|sudo -S chmod 777 %s' % (sudoPassword, ports[key]))
-        lidars[key] = Lidar(ports[key])
-
-    for i in lidars:
-        lidars[i].start()
-    while True:
-        # print(running)
-        with lock:
-            for key in lidars:
-                values[key] = lidars[key].get_data()
-
-    for i in lidars:
-        lidars[i].stop()
-
-
 if __name__ == '__main__':
-    tl = threading.Lock()
-    tv = {}
-    ports = {
-        "front": "/dev/ttyUSB0",
-        "left": "/dev/ttyUSB1",
-        "right": "/dev/ttyUSB2",
-        "bottom": "/dev/ttyTHS1"
-    }
-    th = threading.Thread(target=lidar_control, args=(tl, tv, ports))
-    th.start()
-    try:
-        while True:
-            with tl:
-                #pass
-                print(tv)
-    except KeyboardInterrupt:  # Ctrl+C
-        th.join()
+    pass
+    # tl = threading.Lock()
+    # tv = {}
+    # ports = {
+    #     "front": "/dev/ttyUSB0",
+    #     "left": "/dev/ttyUSB1",
+    #     "right": "/dev/ttyUSB2",
+    #     "bottom": "/dev/ttyTHS1"
+    # }
+    # th = threading.Thread(target=lidar_control, args=(tl, tv, ports))
+    # th.start()
+    # try:
+    #     while True:
+    #         with tl:
+    #             #pass
+    #             print(tv)
+    # except KeyboardInterrupt:  # Ctrl+C
+    #     th.join()

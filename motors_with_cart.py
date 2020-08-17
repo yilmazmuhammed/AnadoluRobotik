@@ -23,6 +23,7 @@ class ContinuousRotationServo:
         self.pin = pin
         self.motor_initialize()
 
+        self.running = True
         self.queue = Queue()
         self.throttle = 0
         self.lock = Lock()
@@ -34,7 +35,7 @@ class ContinuousRotationServo:
         prev_power = 0
         throttle = 0
         control = self.control
-        while True:
+        while self.running:
             # throttle = queue.get()
             self.lock.acquire()
             throttle = self.throttle
@@ -51,6 +52,7 @@ class ContinuousRotationServo:
                         sleep(slp)
                 control.throttle = throttle/100
                 prev_power = throttle
+        self.throttle = 0
 
     def motor_initialize(self):
         self.control = kit.continuous_servo[self.pin]
@@ -95,7 +97,9 @@ class ContinuousRotationServo:
             self.run_counterclockwise(-power)
 
     def stop(self):
-        return self._change_power(0)
+        if self.running:
+            self.running = False
+            self.thread.join()
 
 
 class StandardServo:
@@ -233,52 +237,11 @@ class RovMovement:
         self.stop()
 
 
-rov_movement = RovMovement(xy_lf_pin=0, xy_rf_pin=1, xy_lb_pin=3, xy_rb_pin=2,
-                           z_lf_pin=7, z_rf_pin=6, z_lb_pin=4, z_rb_pin=5, arm_pin=8,
-                           initialize_motors=False
-                           )
-
-
-def motor_xy_control(que):
-    print("motor_xy_control thread oluşturuldu.")
-    while True:
-        value = que.get()
-
-        if not value["xy_plane"]["magnitude"] == 0.0 or value["turn_itself"] == 0.0:
-            power = value["xy_plane"]["magnitude"]*100
-            degree = value["xy_plane"]["angel"]
-            rov_movement.go_xy(power, degree)
-        else:
-            power = value["turn_itself"]*100
-            if power > 0:
-                rov_movement.turn_right(abs(power))
-            else:
-                rov_movement.turn_left(abs(power))
-
-
-def motor_z_control(que):
-    print("motor_z_control thread oluşturuldu.")
-    while True:
-        power = que.get()*100
-        if power > 0:
-            rov_movement.go_up(abs(power))
-        else:
-            rov_movement.go_down(abs(power))
-
-
-def motor_arm_control(que):
-    print("motor_arm_control thread oluşturuldu.")
-    while True:
-        power = int(que.get())
-        if power == -1 and rov_movement.arm_status == True:
-            rov_movement.close_arm()
-        elif power == 1 and rov_movement.arm_status == False:
-            rov_movement.open_arm()
 
 
 if __name__ == '__main__':
-    # rov_movement = RovMovement(xy_lf_pin=0, xy_rf_pin=1, xy_lb_pin=2, xy_rb_pin=3,
-    #                            z_lf_pin=4, z_rf_pin=5, z_lb_pin=6, z_rb_pin=7, arm_pin=8)
+    rov_movement = RovMovement(xy_lf_pin=0, xy_rf_pin=1, xy_lb_pin=2, xy_rb_pin=3,
+                               z_lf_pin=4, z_rf_pin=5, z_lb_pin=6, z_rb_pin=7, arm_pin=8)
     try:
         import getch
 

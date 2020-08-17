@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from time import sleep
 
@@ -11,15 +12,19 @@ from threading import Thread, Lock
 from tkinter import font as tkfont
 
 from csi_camera import CSI_Camera, gstreamer_pipeline
-from joystick import joystick_control
-from lidars import lidar_control
-from motors_with_cart import motor_arm_control, motor_z_control, motor_xy_control
+from joystick import Joystick
+from lidars import Lidar
+from motors_with_cart import RovMovement
+
+arayuz_running = True
 
 
 class SampleApp(tk.Tk):
 
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
+
+        self.manuel_thread = None
 
         self.title_font = tkfont.Font(family='Helvetica', size=18, weight="bold", slant="italic")
         self.wm_title("Robot başlatılıyor - Anadolu Robotik")
@@ -51,14 +56,23 @@ class SampleApp(tk.Tk):
         '''Show a frame for the given page name'''
         frame = self.frames[page_name]
         if mission == 1:
-            update_thread = Thread(target=update_from_joystick, args=(self.frames["ObservationPage"],))
-            update_thread.start()
+            self.manuel_thread = Thread(target=update_from_joystick, args=(self.frames["ObservationPage"],))
+            self.manuel_thread.start()
             pass
         frame.tkraise()
 
     def remove_frame(self, page_name):
         '''Remove a frame for the given page name'''
         self.frames.pop(page_name, None)
+
+    def destroy(self):
+        global arayuz_running
+        arayuz_running = False
+        if self.manuel_thread:
+            print("self.manuel_thread bekleniyor...")
+            self.manuel_thread.join()
+        print("Program kapatılıyor")
+        self.after(30, super().destroy)
 
 
 class StartPage(tk.Frame):
@@ -311,6 +325,94 @@ class ObservationPage(tk.Frame):
         #    # sleep(0.05)
 
 
+def joystick_control(values):
+    Joy_obj = Joystick()
+    values.update(Joy_obj.shared_obj.ret_dict)
+
+    global arayuz_running
+    while arayuz_running:
+        Joy_obj.while_initializer()
+        if Joy_obj.joystick_count:
+            Joy_obj.for_initializer()
+            Joy_obj.joysticks()
+            values.update(Joy_obj.shared_obj.ret_dict)
+            sleep(0.1)
+        Joy_obj.clock.tick(50)
+
+    Joy_obj.quit()
+
+
+rov_movement = RovMovement(xy_lf_pin=0, xy_rf_pin=1, xy_lb_pin=3, xy_rb_pin=2,
+                           z_lf_pin=7, z_rf_pin=6, z_lb_pin=4, z_rb_pin=5, arm_pin=8,
+                           initialize_motors=False
+                           )
+
+
+def motor_xy_control(que):
+    print("motor_xy_control thread oluşturuldu.")
+    global arayuz_running
+    while arayuz_running:
+        value = que.get()
+
+        if not value["xy_plane"]["magnitude"] == 0.0 or value["turn_itself"] == 0.0:
+            power = value["xy_plane"]["magnitude"] * 100
+            degree = value["xy_plane"]["angel"]
+            rov_movement.go_xy(power, degree)
+        else:
+            power = value["turn_itself"] * 100
+            if power > 0:
+                rov_movement.turn_right(abs(power))
+            else:
+                rov_movement.turn_left(abs(power))
+
+    for motor in rov_movement.xy_motors_list:
+        motor.stop()
+
+
+def motor_z_control(que):
+    print("motor_z_control thread oluşturuldu.")
+    global arayuz_running
+    while arayuz_running:
+        power = que.get() * 100
+        if power > 0:
+            rov_movement.go_up(abs(power))
+        else:
+            rov_movement.go_down(abs(power))
+
+    for motor in rov_movement.z_motors_list:
+        motor.stop()
+
+
+def motor_arm_control(que):
+    print("motor_arm_control thread oluşturuldu.")
+    global arayuz_running
+    while arayuz_running:
+        power = int(que.get())
+        if power == -1 and rov_movement.arm_status == True:
+            rov_movement.close_arm()
+        elif power == 1 and rov_movement.arm_status == False:
+            rov_movement.open_arm()
+
+
+def lidar_control(lock, values, ports):
+    sudoPassword = "att"
+    lidars = {}
+    for key in ports:
+        os.system('echo %s|sudo -S chmod 777 %s' % (sudoPassword, ports[key]))
+        lidars[key] = Lidar(ports[key])
+
+    for i in lidars:
+        lidars[i].start()
+    global arayuz_running
+    while arayuz_running:
+        with lock:
+            for key in lidars:
+                values[key] = lidars[key].get_data()
+
+    for i in lidars:
+        lidars[i].stop()
+
+
 def update_from_joystick(frame):
     print("Thrade oluşturuldu")
 
@@ -342,15 +444,18 @@ def update_from_joystick(frame):
     lidars_ports = {"front": "/dev/ttyUSB0", "left": "/dev/ttyUSB1", "right": "/dev/ttyUSB2", "bottom": "/dev/ttyTHS1"}
     lidars_thread = Thread(target=lidar_control, args=(lidars_lock, lidars_values, lidars_ports,))
     lidars_thread.start()
+    threads["lidars"] = lidars_thread
     # Lidars variables are created
 
     # Joystick variables are creating
     joystick_values = {}
     joystick_thread = Thread(target=joystick_control, args=(joystick_values,))
     joystick_thread.start()
+    threads["joystick"] = joystick_thread
     # Lidars variables are created
 
-    while True:
+    global arayuz_running
+    while arayuz_running:
         with lidars_lock:
             frame.update_lidar_values(lidars_values)
 
@@ -360,6 +465,11 @@ def update_from_joystick(frame):
         queues["motor_arm"].put(joystick_values["robotik_kol"])
 
         pass
+
+    for key in threads:
+        print(key, "thread bekleniyor...")
+        threads[key].join()
+        print(key, "thread bitti...")
 
 
 if __name__ == "__main__":

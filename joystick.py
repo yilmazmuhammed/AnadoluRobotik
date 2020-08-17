@@ -178,50 +178,34 @@ class Joystick:
         pygame.quit()
 
 
-def joystick_control(values):
+if __name__ == '__main__':
+    # # Joystick variables are creating
+    # joystick_values = {}
+    # joystick_thread = Thread(target=joystick_control, args=(joystick_values,))
+    # joystick_thread.start()
+    # # Lidars variables are created
+    #
+    # while True:
+    #     print(joystick_values)
+    #     # sleep(0.1)
+
     Joy_obj = Joystick()
 
-    values.update(Joy_obj.shared_obj.ret_dict)
     while not Joy_obj.done:
-        Joy_obj.while_initializer()
+        #print("1asd")
+        Joy_obj.while_initializer() #, args=(scriptA + argumentsA))
         if Joy_obj.joystick_count:
+            #print(joystick_count)
+
             Joy_obj.for_initializer()
-            Joy_obj.joysticks()
-            values.update(Joy_obj.shared_obj.ret_dict)
+            #Joy_obj.for_initializer(i) # thread_S yap done() ile kontrol et olup olmadığını sonra diğerlerini threadle
+            Joy_obj.joysticks()#, args=(str(i)))
+            #Joy_obj.joysticks()
+            #Joy_obj.buttons()
+            #if Joy_obj.button_pressed == 1:
+            print(Joy_obj.shared_obj.ret_dict)
             sleep(0.1)
-        Joy_obj.clock.tick(50)
+
+        Joy_obj.clock.tick(20)
 
     Joy_obj.quit()
-
-
-if __name__ == '__main__':
-    # Joystick variables are creating
-    joystick_values = {}
-    joystick_thread = Thread(target=joystick_control, args=(joystick_values,))
-    joystick_thread.start()
-    # Lidars variables are created
-
-    while True:
-        print(joystick_values)
-        # sleep(0.1)
-
-    # Joy_obj = Joystick()
-    #
-    # while not Joy_obj.done:
-    #     #print("1asd")
-    #     Joy_obj.while_initializer() #, args=(scriptA + argumentsA))
-    #     if Joy_obj.joystick_count:
-    #         #print(joystick_count)
-    #
-    #         Joy_obj.for_initializer()
-    #         #Joy_obj.for_initializer(i) # thread_S yap done() ile kontrol et olup olmadığını sonra diğerlerini threadle
-    #         Joy_obj.joysticks()#, args=(str(i)))
-    #         #Joy_obj.joysticks()
-    #         #Joy_obj.buttons()
-    #         #if Joy_obj.button_pressed == 1:
-    #         print(Joy_obj.shared_obj.ret_dict)
-    #         sleep(0.1)
-    #
-    #     Joy_obj.clock.tick(20)
-    #
-    # Joy_obj.quit()
