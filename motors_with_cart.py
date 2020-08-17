@@ -185,8 +185,7 @@ class RovMovement:
                        270 -> sola
         :return:
         """
-        # power_per_motor = power / 4
-        power_per_motor = power
+        power_per_motor = int(power / 2)
 
         radian_rf = (45 - degree) / 180 * math.pi
         radian_lf = (135 - degree) / 180 * math.pi
@@ -197,9 +196,7 @@ class RovMovement:
         pow_lf = int(math.sin(radian_lf) * power_per_motor)
         pow_lb = int(math.sin(radian_lb) * power_per_motor)
         pow_rb = int(math.sin(radian_rb) * power_per_motor)
-        print("power: %s\t power_per_motor: %s\t radian_rf: %s\t degree_rf: %s\t pow_rf: %s" %
-              (power, power_per_motor, radian_rf, radian_rf * 180 / math.pi, pow_rf))
-        print("self.xy_rf.run_bidirectional(%s)" % pow_rf)
+
         self.xy_rf.run_bidirectional(pow_rf)
         self.xy_lf.run_bidirectional(pow_lf)
         self.xy_lb.run_bidirectional(pow_lb)
@@ -235,10 +232,8 @@ class RovMovement:
         self.stop()
 
 
-print("global rov_movement başlangıç")
 rov_movement = RovMovement(xy_lf_pin=0, xy_rf_pin=1, xy_lb_pin=3, xy_rb_pin=2,
                            z_lf_pin=7, z_rf_pin=6, z_lb_pin=4, z_rb_pin=5, arm_pin=8)
-print("global rov_movement bitiş")
 
 
 def motor_xy_control(que):

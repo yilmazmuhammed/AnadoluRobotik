@@ -87,16 +87,9 @@ def lidar_control(lock, values, ports):
     sudoPassword = "att"
     lidars = {}
     for key in ports:
-        print('echo %s|sudo -S chmod 777 %s' % (sudoPassword, ports[key]))
         os.system('echo %s|sudo -S chmod 777 %s' % (sudoPassword, ports[key]))
         lidars[key] = Lidar(ports[key])
 
-    # lidars = {
-    #     "front": Lidar("/dev/ttyUSB0"),
-    #     "left": Lidar("/dev/ttyUSB1"),
-    #     "bottom": Lidar("/dev/ttyUSB2"),
-    #     "right": Lidar("0")
-    # }
     for i in lidars:
         lidars[i].start()
     while True:

@@ -275,27 +275,28 @@ class ObservationPage(tk.Frame):
         left_imgtk = ImageTk.PhotoImage(image=left_img)
         self.left_camera_label.imgtk = left_imgtk
         self.left_camera_label.configure(image=left_imgtk)
-        
-        #right_frame = imutils.resize(right_frame, width=480, height=360)
+
+        # right_frame = imutils.resize(right_frame, width=480, height=360)
         right_cv2image = cv2.cvtColor(right_frame, cv2.COLOR_BGR2RGBA)
         right_img = Image.fromarray(right_cv2image)
         right_imgtk = ImageTk.PhotoImage(image=right_img)
         self.right_camera_label.imgtk = right_imgtk
         self.right_camera_label.configure(image=right_imgtk)
         self.after(50, self.update_cameras)
-        
 
     def update_camera_thread(self):
-        self.left_camera.open(gstreamer_pipeline(sensor_id=0, sensor_mode=3, flip_method=0, display_height=270, display_width=360    ,))
+        self.left_camera.open(
+            gstreamer_pipeline(sensor_id=0, sensor_mode=3, flip_method=0, display_height=270, display_width=360, ))
         self.left_camera.start()
-        self.right_camera.open(gstreamer_pipeline(sensor_id=1, sensor_mode=3, flip_method=0, display_height=270, display_width=360,))
+        self.right_camera.open(
+            gstreamer_pipeline(sensor_id=1, sensor_mode=3, flip_method=0, display_height=270, display_width=360, ))
         self.right_camera.start()
 
         if not self.left_camera.video_capture.isOpened() or not self.right_camera.video_capture.isOpened():
             # Cameras did not open, or no camera attached
             raise Exception("Unable to open any cameras")
         self.update_cameras()
-        #while True:
+        # while True:
         #    _, left_frame = left_camera.read()
         #    _, right_frame = right_camera.read()
         #    frame.update_cameras(left_frame=left_frame, right_frame=right_frame)
@@ -307,8 +308,8 @@ def update_from_joystick(frame):
 
     frame.baslat()
 
-    #camera_thread = Thread(target=update_camera_thread, args=(frame,))
-    #camera_thread.start()
+    # camera_thread = Thread(target=update_camera_thread, args=(frame,))
+    # camera_thread.start()
     # update_camera_thread(frame)
 
     # keys = ["joystick", "lidar", "motor_xy", "motor_z", "robotic_kol"]
@@ -330,7 +331,7 @@ def update_from_joystick(frame):
     # Lidars variables are creating
     lidars_lock = Lock()
     lidars_values = {}
-    lidars_ports = {"front": "/dev/ttyUSB0", "left": "/dev/ttyUSB1", "right": "/dev/ttyUSB2", "bottom":"/dev/ttyTHS1"}
+    lidars_ports = {"front": "/dev/ttyUSB0", "left": "/dev/ttyUSB1", "right": "/dev/ttyUSB2", "bottom": "/dev/ttyTHS1"}
     th = Thread(target=lidar_control, args=(lidars_lock, lidars_values, lidars_ports,))
     th.start()
     # Lidars variables are created
