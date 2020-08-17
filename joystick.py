@@ -63,9 +63,8 @@ class SharedOutput():
                 angel = np.pi/2
             else:
                 angel = np.pi*3/2
-        
 
-        if x==0:
+        if x == 0:
             self.ret_dict["xy_plane"]["angel"] = angel*(180/np.pi)
             self.ret_dict["xy_plane"]["magnitude"] = abs(y)
         elif math.atan(y/x)<1:

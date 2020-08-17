@@ -63,8 +63,6 @@ class ContinuousRotationServo:
                       positive values​make it work forward.
         :return:
         """
-        if self.pin in [0,1,2,3]:
-            print("\t\tchangepow\tMotor:", self.pin, "\tPower:", power)
         try:
             self.lock.release()
         except:
@@ -78,8 +76,6 @@ class ContinuousRotationServo:
         :param power:
         :return:
         """
-        if self.pin in [0,1,2,3]:
-            print("\t\tclockwise\tMotor:", self.pin, "\tPower:", power)
         if not 0 <= power <= 100:
             raise NotInCorrectRange("Power must be between 0 and 100.")
         return self._change_power(power)
@@ -90,15 +86,11 @@ class ContinuousRotationServo:
         :param power:
         :return:
         """
-        if self.pin in [0,1,2,3]:
-            print("\t\counterclock\tMotor:", self.pin, "\tPower:", power)
         if not 0 <= power <= 100:
             raise NotInCorrectRange("Power must be between 0 and 100.")
         return self._change_power(-power)
 
     def run_bidirectional(self, power):
-        if self.pin in [0,1,2,3]:
-            print("\t\tbidirectional\tMotor:", self.pin, "\tPower:", power)
         if power >= 0:
             self.run_clockwise(power)
         else:
@@ -217,12 +209,7 @@ class RovMovement:
         pow_lf = int(math.sin(radian_lf) * power_per_motor)
         pow_lb = int(math.sin(radian_lb) * power_per_motor)
         pow_rb = int(math.sin(radian_rb) * power_per_motor)
-        
-        print("\t\t\tPower:", power,"\tDegree:", degree)
-        print("\t\tgo_xy   \tMotor:", self.xy_rf.pin, "\tPower:", pow_rf)
-        print("\t\tgo_xy   \tMotor:", self.xy_lf.pin, "\tPower:", pow_lf)
-        print("\t\tgo_xy   \tMotor:", self.xy_lb.pin, "\tPower:", pow_lb)
-        print("\t\tgo_xy   \tMotor:", self.xy_rb.pin, "\tPower:", pow_rb)
+
         self.xy_rf.run_bidirectional(pow_rf)
         self.xy_lf.run_bidirectional(pow_lf)
         self.xy_lb.run_bidirectional(pow_lb)
