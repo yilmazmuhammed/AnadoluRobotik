@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*
-import threading
+from threading import Thread, Lock
 from queue import Queue
 
 import serial
@@ -14,7 +14,7 @@ class Lidar:
         self.distance = None
         self.strength = None
         self.read_thread = None
-        self.read_lock = threading.Lock()
+        self.read_lock = Lock()
         self.running = False
 
     def _open(self):
@@ -34,7 +34,7 @@ class Lidar:
         if self.running is False:
             self._open()
             self.running = True
-            self.read_thread = threading.Thread(target=self.update_values)
+            self.read_thread = Thread(target=self.update_values)
             self.read_thread.start()
         return self
 
@@ -85,7 +85,71 @@ class Lidar:
             print(self.tty_port, "kapatıldı...")
 
 
+class RovLidars:
+    def __init__(self, ports, sudo_password='att'):
+        self._lidars = {}
+        self._values = {}
+        self._read_thread = None
+        self._read_lock = Lock()
+        self._create_lidars(ports, sudo_password)
+        self._running = False
+
+    def _create_lidars(self, ports, sudo_password):
+        for key in ports:
+            os.system('echo %s|sudo -S chmod 777 %s' % (sudo_password, ports[key]))
+            self._lidars[key] = Lidar(ports[key])
+            self._lidars[key].start()
+            self._values[key] = self._lidars[key].get_data()
+
+    def start(self):
+        if self._running:
+            print('Lidars is already running')
+            return None
+
+        self._running = True
+        self._read_thread = Thread(target=self._update_values)
+        self._read_thread.start()
+        return self
+
+    def stop(self):
+        print("RovLidars is shutting down...")
+        self._running=False
+        for key in self._lidars:
+            print(key, "lidar is shutting down...")
+            self._lidars[key].stop()
+            print(key, "lidar is shut down...")
+        self._read_thread.join()
+        print("RovLidars is shut down...")
+
+    def _update_values(self):
+        values = {}
+        while self._running:
+            for key in self._lidars:
+                values[key] = self._lidars[key].get_data()
+            with self._read_lock:
+                self._values.update(values)
+
+    def get_values(self):
+        with self._read_lock:
+            values = self._values.copy()
+        return values
+
+
 if __name__ == '__main__':
+    ports = {
+        "front": "/dev/ttyUSB0",
+        "left": "/dev/ttyUSB1",
+        # "right": "/dev/ttyUSB2",
+        # "bottom": "/dev/ttyTHS1"
+    }
+    rov_lidars = RovLidars(ports=ports, sudo_password='2003')
+    rov_lidars.start()
+    try:
+        while True:
+            print(rov_lidars.get_values())
+            time.sleep(0.1)
+    except KeyboardInterrupt:
+        rov_lidars.stop()
     pass
     # tl = threading.Lock()
     # tv = {}

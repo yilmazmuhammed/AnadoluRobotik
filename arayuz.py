@@ -13,7 +13,7 @@ from tkinter import font as tkfont
 
 from csi_camera import CSI_Camera, gstreamer_pipeline
 from joystick import Joystick
-from lidars import Lidar
+from lidars import Lidar, RovLidars
 from motors_with_cart import RovMovement
 
 arayuz_running = True
@@ -260,6 +260,16 @@ class ObservationPage(tk.Frame):
         self.right_camera = CSI_Camera()
         self.update_camera_thread()
 
+        ports = {
+            "front": "/dev/ttyUSB0",
+            "left": "/dev/ttyUSB1",
+            "right": "/dev/ttyUSB2",
+            "bottom": "/dev/ttyTHS1"
+        }
+        self.rov_lidars = RovLidars(ports=ports)
+        self.rov_lidars.start()
+        self.update_lidars_values()
+
     #     self.count = 0
     #     self.controls_completed()
     #
@@ -274,6 +284,12 @@ class ObservationPage(tk.Frame):
 
     def baslat(self):
         self.joystick_value_label["text"] = "Açık"
+
+    def update_lidars_values(self):
+        values = self.rov_lidars.get_values()
+        for key in values:
+            self.lidar_labels[key]["text"] = values[key][0]
+        self.after(50, self.update_lidars_values)
 
     def update_cameras(self):
         _, left_frame = self.left_camera.read()
@@ -307,11 +323,7 @@ class ObservationPage(tk.Frame):
             # Cameras did not open, or no camera attached
             raise Exception("Unable to open any cameras")
         self.update_cameras()
-        # while True:
-        #    _, left_frame = left_camera.read()
-        #    _, right_frame = right_camera.read()
-        #    frame.update_cameras(left_frame=left_frame, right_frame=right_frame)
-        #    # sleep(0.05)
+
     def destroy(self):
         print("Kameralar kapatılıyor...")
         self.left_camera.stop()
@@ -319,13 +331,16 @@ class ObservationPage(tk.Frame):
         self.right_camera.stop()
         self.right_camera.release()
         print("Kameralar kapatıldı...")
+        self.rov_lidars.stop()
         self.after(30, super().destroy)
 
-def update_lidar_values(frame, values: dict):
-    for key in values:
-        print("update_lidar_values:", key)
-        frame.lidar_labels[key]["text"] = values[key][0]
-    print("update_lidar_values bitti")
+
+# def update_lidar_values(frame, values: dict):
+#     for key in values:
+#         print("update_lidar_values:", key)
+#         frame.lidar_labels[key]["text"] = values[key][0]
+#     print("update_lidar_values bitti")
+
 
 def joystick_control(values):
     Joy_obj = Joystick()
@@ -396,28 +411,29 @@ def motor_arm_control(que):
             rov_movement.open_arm()
     print("motor_arm_control bitti")
 
-def lidar_control(lock, values, ports):
-    sudoPassword = "att"
-    lidars = {}
-    for key in ports:
-        os.system('echo %s|sudo -S chmod 777 %s' % (sudoPassword, ports[key]))
-        lidars[key] = Lidar(ports[key])
 
-    for i in lidars:
-        lidars[i].start()
-    global arayuz_running
-    while arayuz_running:
-        print("lidar loop")
-        with lock:
-            print("lidar loop lock")
-            for key in lidars:
-                print("lidar loop lock", key)
-                values[key] = lidars[key].get_data()
-        
-        print("lidar loop sonu")
-    for i in lidars:
-        print(i, "lidar lards thread stop()")
-        lidars[i].stop()
+# def lidar_control(lock, values, ports):
+#     sudoPassword = "att"
+#     lidars = {}
+#     for key in ports:
+#         os.system('echo %s|sudo -S chmod 777 %s' % (sudoPassword, ports[key]))
+#         lidars[key] = Lidar(ports[key])
+#
+#     for i in lidars:
+#         lidars[i].start()
+#     global arayuz_running
+#     while arayuz_running:
+#         print("lidar loop")
+#         with lock:
+#             print("lidar loop lock")
+#             for key in lidars:
+#                 print("lidar loop lock", key)
+#                 values[key] = lidars[key].get_data()
+#
+#         print("lidar loop sonu")
+#     for i in lidars:
+#         print(i, "lidar lards thread stop()")
+#         lidars[i].stop()
 
 
 def update_from_joystick(frame):
@@ -445,14 +461,14 @@ def update_from_joystick(frame):
         threads[key] = Thread(target=targets[key], args=(queues[key],))
         threads[key].start()
 
-    # Lidars variables are creating
-    lidars_lock = Lock()
-    lidars_values = {}
-    lidars_ports = {"front": "/dev/ttyUSB0", "left": "/dev/ttyUSB1", "right": "/dev/ttyUSB2", "bottom": "/dev/ttyTHS1"}
-    lidars_thread = Thread(target=lidar_control, args=(lidars_lock, lidars_values, lidars_ports,))
-    lidars_thread.start()
-    threads["lidars"] = lidars_thread
-    # Lidars variables are created
+    # # Lidars variables are creating
+    # lidars_lock = Lock()
+    # lidars_values = {}
+    # lidars_ports = {"front": "/dev/ttyUSB0", "left": "/dev/ttyUSB1", "right": "/dev/ttyUSB2", "bottom": "/dev/ttyTHS1"}
+    # lidars_thread = Thread(target=lidar_control, args=(lidars_lock, lidars_values, lidars_ports,))
+    # lidars_thread.start()
+    # threads["lidars"] = lidars_thread
+    # # Lidars variables are created
 
     # Joystick variables are creating
     joystick_values = {}
@@ -464,10 +480,10 @@ def update_from_joystick(frame):
     global arayuz_running
     while arayuz_running:
         print("- arayuz_running:", arayuz_running)
-        with lidars_lock:
-            print("lidar lock'un içinde")
-            update_lidar_values(frame, lidars_values)
-        print("lidarları geçti")
+        # with lidars_lock:
+        #     print("lidar lock'un içinde")
+        #     update_lidar_values(frame, lidars_values)
+        # print("lidarları geçti")
         # print(joystick_values)
         if joystick_values != {}:
             queues["motor_xy"].put(joystick_values)
@@ -480,9 +496,9 @@ def update_from_joystick(frame):
     for key in threads:
         print(key, "thread bekleniyor...")
         if key == "motor_xy":
-             queues[key].put({"xy_plane":{"magnitude":0, "angel":0},"turn_itself":0})
+            queues[key].put({"xy_plane": {"magnitude": 0, "angel": 0}, "turn_itself": 0})
         elif key == "motor_z":
-             queues[key].put(0)
+            queues[key].put(0)
         threads[key].join()
         print(key, "thread bitti...")
 
