@@ -1,11 +1,11 @@
 import copy
+from datetime import datetime
 from time import sleep
 
 import cv2
 import tkinter as tk
 
 from PIL import Image, ImageTk
-from queue import Queue
 from random import randint
 from threading import Thread
 from tkinter import font as tkfont
@@ -18,7 +18,6 @@ from motors import RovMovement
 arayuz_running = True
 
 # TODO arayüz kapanırken rov_movement.stop()
-rov_movement = None
 
 class SampleApp(tk.Tk):
 
@@ -51,13 +50,18 @@ class SampleApp(tk.Tk):
             # will be the one that is visible.
             frame.grid(row=0, column=0, sticky="nsew")
 
+        self.rov_movement = RovMovement(xy_lf_pin=0, xy_rf_pin=1, xy_lb_pin=3, xy_rb_pin=2,
+                                        z_lf_pin=7, z_rf_pin=6, z_lb_pin=4, z_rb_pin=5, arm_pin=8,
+                                        initialize_motors=True
+                                        )
+
         self.show_frame("StartPage")
 
     def show_frame(self, page_name, mission=None):
         '''Show a frame for the given page name'''
         frame = self.frames[page_name]
         if mission == 1:
-            self.manuel_thread = Thread(target=update_from_joystick, args=(self.frames["ObservationPage"],))
+            self.manuel_thread = Thread(target=update_from_joystick, args=(self.frames["ObservationPage"], self.rov_movement))
             self.manuel_thread.start()
             pass
         frame.tkraise()
@@ -72,7 +76,11 @@ class SampleApp(tk.Tk):
         if self.manuel_thread:
             print("self.manuel_thread bekleniyor...")
             self.manuel_thread.join()
-        print("Program kapatılıyor")
+
+        print("Motorlar kapatılıyor...")
+        self.rov_movement.stop()
+        print("Motorlar kapatıldı...")
+        print("Program kapatılıyor...")
         self.after(30, super().destroy)
 
 
@@ -347,13 +355,7 @@ def joystick_control(values):
     Joy_obj.quit()
 
 
-rov_movement = RovMovement(xy_lf_pin=0, xy_rf_pin=1, xy_lb_pin=3, xy_rb_pin=2,
-                           z_lf_pin=7, z_rf_pin=6, z_lb_pin=4, z_rb_pin=5, arm_pin=8,
-                           initialize_motors=True
-                           )
-
-
-def update_from_joystick(frame):
+def update_from_joystick(frame, rov_movement):
     print("Thrade oluşturuldu")
 
     frame.baslat()
@@ -361,47 +363,53 @@ def update_from_joystick(frame):
     # Joystick variables are creating
     joystick_values = {}
     prev_joystick_values = copy.deepcopy(joystick_values)
-    joystick_thread = Thread(target=joystick_control, args=(joystick_values,))
-    joystick_thread.start()
+    Joy_obj = Joystick()
+    joystick_values.update(Joy_obj.shared_obj.ret_dict)
     # Joystick variables are created
 
     global arayuz_running
     while arayuz_running:
-        # print(joystick_values)
-        if joystick_values != prev_joystick_values:
-            # Z ekseninde hareket
-            z_power = int(joystick_values["z_axes"] * 100)
-            if z_power > 0:
-                rov_movement.go_up(abs(z_power))
-            else:
-                rov_movement.go_down(abs(z_power))
+        Joy_obj.while_initializer()
+        if Joy_obj.joystick_count:
+            Joy_obj.for_initializer()
+            Joy_obj.joysticks()
+            joystick_values = Joy_obj.shared_obj.ret_dict
 
-            # Robotik kol hareketi
-            arm_status = int(joystick_values["robotik_kol"])
-            if arm_status == -1:
-                rov_movement.toggle_arm(False)
-            elif arm_status == 1:
-                rov_movement.toggle_arm(True)
-
-            # XY düzleminde hareket
-            if not joystick_values["xy_plane"]["magnitude"] == 0.0 or joystick_values["turn_itself"] == 0.0:
-                xy_power = int(joystick_values["xy_plane"]["magnitude"])
-                xy_angle = joystick_values["xy_plane"]["angel"]
-                rov_movement.go_xy(xy_power, xy_angle)
-            else:
-                turn_power = int(joystick_values["turn_itself"] * 100)
-                if turn_power > 0:
-                    rov_movement.turn_right(abs(turn_power))
+            # print(joystick_values)
+            if joystick_values != prev_joystick_values:
+                a = datetime.now()
+                # Z ekseninde hareket
+                z_power = int(joystick_values["z_axes"] * 100)
+                if z_power > 0:
+                    rov_movement.go_up(abs(z_power))
                 else:
-                    rov_movement.turn_left(abs(turn_power))
+                    rov_movement.go_down(abs(z_power))
 
-            prev_joystick_values = copy.deepcopy(joystick_values)
-        else:
-            sleep(0.01)
+                # Robotik kol hareketi
+                arm_status = int(joystick_values["robotik_kol"])
+                if arm_status == -1:
+                    rov_movement.toggle_arm(False)
+                elif arm_status == 1:
+                    rov_movement.toggle_arm(True)
 
-    print("Joystick thread bekleniyor...")
-    joystick_thread.join()
-    print("Joystick thread bitti...")
+                # XY düzleminde hareket
+                if not joystick_values["xy_plane"]["magnitude"] == 0.0 or joystick_values["turn_itself"] == 0.0:
+                    xy_power = int(joystick_values["xy_plane"]["magnitude"])
+                    xy_angle = joystick_values["xy_plane"]["angel"]
+                    rov_movement.go_xy(xy_power, xy_angle)
+                else:
+                    turn_power = int(joystick_values["turn_itself"] * 100)
+                    if turn_power > 0:
+                        rov_movement.turn_right(abs(turn_power))
+                    else:
+                        rov_movement.turn_left(abs(turn_power))
+
+                prev_joystick_values = copy.deepcopy(joystick_values)
+                print("Joystick loop süresi:", datetime.now() - a)
+            else:
+                sleep(0.01)
+        sleep(0.04)
+        Joy_obj.clock.tick(50)
 
 
 if __name__ == "__main__":

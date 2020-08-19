@@ -18,6 +18,7 @@ arayuz_running = True
 
 rov_movement = None
 
+
 class SampleApp(tk.Tk):
 
     def __init__(self, *args, **kwargs):
