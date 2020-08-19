@@ -155,12 +155,8 @@ class RovMovement:
         mp = 30
         for i in list(range(0, mp)) + list(range(mp, -mp, -1)) + list(range(-mp, 1)):
             print("Power:", i)
-            print(datetime.datetime.now())
             for motor in self.all_motors_list:
-                #print(datetime.datetime.now())
-                #print("for un altı")
                 motor.run_bidirectional(i)
-                #print("bidirectionun altı")
             sleep(0.01)
         print("All motors initialized...")
 

@@ -12,10 +12,11 @@ from tkinter import font as tkfont
 from csi_camera import CSI_Camera, gstreamer_pipeline
 from joystick import Joystick
 from lidars import RovLidars
-from motors_with_cart import RovMovement
+from motors import RovMovement
 
 arayuz_running = True
 
+rov_movement = None
 
 class SampleApp(tk.Tk):
 
