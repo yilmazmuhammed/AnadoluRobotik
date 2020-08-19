@@ -256,8 +256,8 @@ class ObservationPage(tk.Frame):
         self.right_camera_label.grid(row=1, column=1, padx=10)
         cameras_frame.grid(row=1, column=0, columnspan=3, padx=10, pady=(70, 10))
 
-        self.left_camera = CSI_Camera()
-        self.right_camera = CSI_Camera()
+        self.left_camera = CSI_Camera(output_file="left_camera.avi")
+        self.right_camera = CSI_Camera(output_file="right_camera.avi")
         self.update_camera_thread()
 
         ports = {
@@ -266,7 +266,7 @@ class ObservationPage(tk.Frame):
             "right": "/dev/ttyUSB2",
             "bottom": "/dev/ttyTHS1"
         }
-        self.rov_lidars = RovLidars(ports=ports)
+        self.rov_lidars = RovLidars(ports=ports, output_file="lidars.txt")
         self.rov_lidars.start()
         self.update_lidars_values()
 
