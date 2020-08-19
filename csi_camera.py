@@ -1,4 +1,5 @@
 from datetime import datetime
+from pathlib import Path
 
 import cv2
 import threading
@@ -19,7 +20,8 @@ class CSI_Camera:
         self.running = False
         self.output = None
         if output_file != "":
-            output_file = datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + "_" + output_file + ".avi"
+            Path("logs").mkdir(parents=True, exist_ok=True)
+            output_file = "logs/" + datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + "_camera_" + output_file
             self.output = cv2.VideoWriter(output_file, cv2.VideoWriter_fourcc(*'XVID'), 20.0, (640, 480))
 
     def open(self, gstreamer_pipeline_string):

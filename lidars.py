@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*
+from datetime import datetime
+from pathlib import Path
 from threading import Thread, Lock
 from time import sleep
 
@@ -85,13 +87,18 @@ class Lidar:
 
 
 class RovLidars:
-    def __init__(self, ports, sudo_password='att'):
+    def __init__(self, ports, sudo_password='att', output_file=""):
         self._lidars = {}
         self._values = {}
         self._read_thread = None
         self._read_lock = Lock()
         self._create_lidars(ports, sudo_password)
         self._running = False
+        self.output = None
+        if output_file != "":
+            Path("logs").mkdir(parents=True, exist_ok=True)
+            output_file = "logs/" + datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + "_lidars_" + output_file
+            self.output = open(output_file, "a")
 
     def _create_lidars(self, ports, sudo_password):
         for key in ports:
@@ -118,6 +125,8 @@ class RovLidars:
             self._lidars[key].stop()
             print(key, "lidar is shut down...")
         self._read_thread.join()
+        if self.output:
+            self.output.close()
         print("RovLidars is shut down...")
 
     def _update_values(self):
@@ -127,6 +136,8 @@ class RovLidars:
                 values[key] = self._lidars[key].get_data()
             with self._read_lock:
                 self._values.update(values)
+            if self.output:
+                self.output.write(str(datetime.now()) + ": " + str(values))
             sleep(0.1)
 
     def get_values(self):
