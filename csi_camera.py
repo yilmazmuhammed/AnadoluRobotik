@@ -1,5 +1,6 @@
 from datetime import datetime
 from pathlib import Path
+from time import sleep
 
 import cv2
 import threading
@@ -24,16 +25,17 @@ class CSI_Camera:
             output_file = "logs/" + datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + "_camera_" + output_file
             self.output = cv2.VideoWriter(output_file, cv2.VideoWriter_fourcc(*'XVID'), 20.0, (640, 480))
 
-    def open(self, gstreamer_pipeline_string):
+    def open(self, camera, is_gstreamer=True):
         try:
-            self.video_capture = cv2.VideoCapture(
-                gstreamer_pipeline_string, cv2.CAP_GSTREAMER
-            )
+            if is_gstreamer:
+                self.video_capture = cv2.VideoCapture(camera, cv2.CAP_GSTREAMER)
+            else:
+                self.video_capture = cv2.VideoCapture(camera)
 
         except RuntimeError:
             self.video_capture = None
             print("Unable to open camera")
-            print("Pipeline: " + gstreamer_pipeline_string)
+            print("Pipeline: " + camera)
             return
         # Grab the first frame to start the video capturing
         self.grabbed, self.frame = self.video_capture.read()
@@ -62,9 +64,14 @@ class CSI_Camera:
                     self.grabbed = grabbed
                     self.frame = frame
                 if self.output:
-                    self.output.write(frame)
+                    f = frame.copy()
+                    cv2.putText(f, str(datetime.now()), (5, 15), cv2.FONT_HERSHEY_SIMPLEX, .5, (255, 255, 255), 1,
+                                cv2.LINE_AA)
+                    self.output.write(f)
             except RuntimeError:
                 print("Could not read image from camera")
+            sleep(0.01)
+
         # FIX ME - stop and cleanup thread
         # Something bad happened
 
@@ -117,3 +124,41 @@ def gstreamer_pipeline(
                 display_height,
             )
     )
+
+
+if __name__ == '__main__':
+    # Create a VideoCapture object and read from input file
+    # If the input is the camera, pass 0 instead of the video file name
+    cap = CSI_Camera(output_file="out.avi")
+    cap.open("http://192.168.1.36:4747/mjpegfeed?640x480", is_gstreamer=False)
+    cap.start()
+
+    # Check if camera opened successfully
+    if not cap.video_capture.isOpened():
+        print("Error opening video stream or file")
+
+    # Read until video is completed
+    while cap.video_capture.isOpened():
+        # Capture frame-by-frame
+        ret, frame = cap.read()
+        if ret:
+
+            # Display the resulting frame
+            cv2.imshow('Frame', frame)
+            # output.write(frame)
+
+            # Press Q on keyboard to  exit
+            if cv2.waitKey(25) & 0xFF == ord('q'):
+                break
+
+        # Break the loop
+        else:
+            break
+
+    # When everything done, release the video capture object
+    cap.stop()
+    cap.release()
+    # output.release()
+
+    # Closes all the frames
+    cv2.destroyAllWindows()
