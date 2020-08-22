@@ -3,6 +3,7 @@
 - TODO Arayüze entegre edilmiş kamera görüntüsünde gecikme düzeltilecek
 - TODO Thread sayısını azalt veya stabilize et
 - TODO Motor xy, z, arm thread'lerinde queue yerine kilit ve değişken kullan
+-
 
 ARAYÜZ
 - TODO hareket yönü, açısı ve gücünü göster
@@ -15,6 +16,8 @@ ARAYÜZ
 - DONE Motorlar ileri itince ve geri itince aynı yöne çalışıyor, düzeltilecek - 2020.08.17 19:30
 - DONE xy motorlarının çalışması kontrol edilecek - 2020.08.17 19:30
 - DONE Arayüz kapanırken frame'in update_lidar_values fonksipnunda takılıyor. - 2020.08.17 21.30
+- DONE Lidar loglarını al. - 2020.08.20
+- DONE Camera kaydını al
 
 
             ---------- HAVUZ TESTLERİ (19-25 Ağustos) ----------
@@ -22,7 +25,11 @@ ARAYÜZ
 - TODO Lidar cam ve su altı testi
 - TODO xy motorları max'ı düşür
 - TODO Motorların durma noktasını ayarla (0.1)
+- TODO Motorların ileri-geri çalışmalarındaki farkları düzelt
 
 
            ---------- OTONOMLUK (25 Ağustos - 11 Eylül) ----------
+- Bütün halkayı tespit et
+- Yarım halkayı tespit et
+- Çeyrek halkayı tespit et
 - TODO Lidarla kendi etrafında dönmeyi algılama

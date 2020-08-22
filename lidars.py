@@ -49,9 +49,12 @@ class Lidar:
                     if recv[0] == 0x59 and recv[1] == 0x59:
                         distance = recv[2] + recv[3] * 256
                         strength = recv[4] + recv[5] * 256
-                        with self.read_lock:
-                            self.distance = distance
-                            self.strength = strength
+                    else:
+                        distance = None
+                        strength = None
+                    with self.read_lock:
+                        self.distance = distance
+                        self.strength = strength
             except RuntimeError:
                 print("Could not read values from lidar")
                 # FIX ME - stop and cleanup thread
@@ -149,7 +152,7 @@ class RovLidars:
 if __name__ == '__main__':
     ports = {
         "front": "/dev/ttyUSB0",
-        "left": "/dev/ttyUSB1",
+        # "left": "/dev/ttyUSB1",
         # "right": "/dev/ttyUSB2",
         # "bottom": "/dev/ttyTHS1"
     }

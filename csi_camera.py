@@ -28,6 +28,9 @@ class CSI_Camera:
     def open(self, camera, is_gstreamer=True):
         try:
             if is_gstreamer:
+                # For save video
+                # https://forums.developer.nvidia.com/t/how-to-save-video-with-2-camera-pi-with-jeston-nano/145882
+                # gst-launch-1.0 nvarguscamerasrc sensor-id=0 num-buffers=300 ! 'video/x-raw(memory:NVMM), width=1280, height=720, framerate=30/1' ! nvtee ! omxh264enc bitrate=20000000 ! qtmux ! filesink location=video.mp4
                 self.video_capture = cv2.VideoCapture(camera, cv2.CAP_GSTREAMER)
             else:
                 self.video_capture = cv2.VideoCapture(camera)
