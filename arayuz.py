@@ -52,7 +52,7 @@ class SampleApp(tk.Tk):
 
         self.rov_movement = RovMovement(xy_lf_pin=2, xy_rf_pin=0, xy_lb_pin=1, xy_rb_pin=6,
                                         z_lf_pin=5, z_rf_pin=3, z_lb_pin=7, z_rb_pin=4, arm_pin=8,
-                                        initialize_motors=False
+                                        initialize_motors=True
                                         )
 
         self.show_frame("StartPage")
