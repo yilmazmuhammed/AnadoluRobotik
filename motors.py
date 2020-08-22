@@ -271,6 +271,38 @@ class RovMovement:
         self.xy_lb.run_bidirectional(pow_lb)
         self.xy_rb.run_bidirectional(pow_rb)
 
+    def go_xy_and_turn(self, power, degree, turn_power):
+        """
+        :param power: Power sent to the vehicle's movement
+        :param degree: degree of movement (0between 0-360 degree)
+                       0 -> ileri
+                       90 -> sağa
+                       180 -> geri
+                       270 -> sola
+        :param turn_power: Turn power
+                           Positive value -> Turn right
+                           Negative value -> Turn left
+        :return:
+        """
+        turn_power = turn_power / 10
+        turn_power_per_motor = int(turn_power / 4)
+        go_power_per_motor = int(power / 2)
+
+        radian_rf = (45 - degree) / 180 * math.pi
+        radian_lf = (135 - degree) / 180 * math.pi
+        radian_lb = (225 - degree) / 180 * math.pi
+        radian_rb = (315 - degree) / 180 * math.pi
+
+        pow_rf = int(math.sin(radian_rf) * go_power_per_motor - turn_power_per_motor)
+        pow_lf = int(math.sin(radian_lf) * go_power_per_motor + turn_power_per_motor)
+        pow_lb = int(math.sin(radian_lb) * go_power_per_motor - turn_power_per_motor)
+        pow_rb = int(math.sin(radian_rb) * go_power_per_motor + turn_power_per_motor)
+
+        self.xy_rf.run_bidirectional(pow_rf)
+        self.xy_lf.run_bidirectional(pow_lf)
+        self.xy_lb.run_bidirectional(pow_lb)
+        self.xy_rb.run_bidirectional(pow_rb)
+
     def open_arm(self):
         self.arm.change_angle(180)
         self.arm_status = True

@@ -349,7 +349,7 @@ def joystick_control(values):
             Joy_obj.for_initializer()
             Joy_obj.joysticks()
             values.update(Joy_obj.shared_obj.ret_dict)
-            sleep(0.1)
+            sleep(0.01)
         Joy_obj.clock.tick(50)
 
     Joy_obj.quit()
@@ -392,19 +392,35 @@ def update_from_joystick(frame, rov_movement):
                 elif arm_status == 1:
                     rov_movement.toggle_arm(True)
 
+                # # XY düzleminde hareket
+                # if not joystick_values["xy_plane"]["magnitude"] == 0.0 or joystick_values["turn_itself"] == 0.0:
+                #     print("xy")
+                #     xy_power = joystick_values["xy_plane"]["magnitude"] * 100
+                #     xy_angle = joystick_values["xy_plane"]["angel"]
+                #     rov_movement.go_xy(xy_power, xy_angle)
+                # else:
+                #     print("itself")
+                #     turn_power = joystick_values["turn_itself"] * 100
+                #     if turn_power > 0:
+                #         rov_movement.turn_right(abs(turn_power))
+                #     else:
+                #         rov_movement.turn_left(abs(turn_power))
+
                 # XY düzleminde hareket
-                if not joystick_values["xy_plane"]["magnitude"] == 0.0 or joystick_values["turn_itself"] == 0.0:
-                    print("xy")
-                    xy_power = joystick_values["xy_plane"]["magnitude"] * 100
-                    xy_angle = joystick_values["xy_plane"]["angel"]
+                xy_power = joystick_values["xy_plane"]["magnitude"] * 100
+                xy_angle = joystick_values["xy_plane"]["angel"]
+                turn_power = joystick_values["turn_itself"] * 100
+                if not xy_power == 0.0 and not turn_power == 0.0:
+                    rov_movement.go_xy_and_turn(xy_power, xy_angle, turn_power)
+                elif not xy_power == 0.0:
                     rov_movement.go_xy(xy_power, xy_angle)
-                else:
-                    print("itself")
-                    turn_power = joystick_values["turn_itself"] * 100
+                elif not turn_power == 0.0:
                     if turn_power > 0:
                         rov_movement.turn_right(abs(turn_power))
                     else:
                         rov_movement.turn_left(abs(turn_power))
+                else:
+                    rov_movement.go_xy_and_turn(0, 0)
 
                 prev_joystick_values = copy.deepcopy(joystick_values)
                 print(joystick_values)
