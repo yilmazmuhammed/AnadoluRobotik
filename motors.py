@@ -20,7 +20,8 @@ class ContinuousRotationServo:
 
     def __init__(self, pin):
         self.control = None
-        self.pin = pin
+        self.pin = abs(int(pin))
+        self.pervane = -1 if pin[0] == "-" else 1
         self.motor_initialize()
 
         self.running = True
@@ -50,7 +51,7 @@ class ContinuousRotationServo:
                     for i in range(prev_power-1, throttle-1, -5):
                         control.throttle = i/100
                         sleep(slp)
-                control.throttle = self.force_to_throttle(throttle)
+                control.throttle = self.force_to_throttle(throttle * self.pervane)
                 prev_power = throttle
         self.power = 0
 
