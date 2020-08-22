@@ -55,29 +55,28 @@ class ContinuousRotationServo:
         self.power = 0
 
     @staticmethod
-    def force_to_throttle(power_):
+    def force_to_throttle(power):
         with open('t200.json', 'r') as j:
             sozluk = json.load(j)
+
+        if sozluk.get(str(power)):
+            return (sozluk.get(str(power)) - 1500) / 400 + 0
+
         p_key = None
-        o_key = None
         l_key = None
+        # sozluk.keys() küçükten büyüğe sıralı olmalı
         for key in sozluk.keys():
             key = int(key)
-            if power_ == key:
-                o_key = key
-                break
-            elif power_ > key:
+            if power > key:
                 p_key = key
             else:
                 l_key = key
                 break
-        if not o_key:
-            p_value = sozluk.get(str(p_key))
-            l_value = sozluk.get(str(l_key))
-            o_value = (l_value - p_value) / (int(l_key) - int(p_key)) + p_value
-        else:
-            o_value = sozluk.get(o_key)
-        return (o_value-1500)/400+0
+
+        p_value = sozluk.get(str(p_key))
+        l_value = sozluk.get(str(l_key))
+        o_value = (l_value - p_value) / (int(l_key) - int(p_key)) * (power - p_key) + p_value
+        return (o_value - 1500) / 400 + 0
 
     def motor_initialize(self):
         self.control = kit.continuous_servo[self.pin]
