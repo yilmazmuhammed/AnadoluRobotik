@@ -2,7 +2,6 @@ import math
 from queue import Queue
 from threading import Thread, Lock
 from time import sleep
-import datetime
 from adafruit_servokit import ServoKit
 
 kit = ServoKit(channels=16)
@@ -63,12 +62,10 @@ class ContinuousRotationServo:
                       positive values​make it work forward.
         :return:
         """
-        try:
-            self.lock.release()
-        except:
-            pass
-        self.throttle = power
-        # self.queue.put(power)
+        if power != self.throttle:
+            self.throttle = power
+            if self.lock.locked():
+                self.lock.release()
 
     def run_clockwise(self, power):
         """
@@ -102,10 +99,8 @@ class ContinuousRotationServo:
             print(self.pin, "motor kapatılıyor...")
             self.running = False
             self.throttle = 0
-            try:
+            if self.lock.locked():
                 self.lock.release()
-            except:
-                pass
             self.thread.join()
             print(self.pin, "motor kapatıldı...")
 
@@ -118,16 +113,53 @@ class StandardServo:
     def __init__(self, pin):
         self.control = None
         self.pin = pin
-        self.motor_initialize()
+        self._motor_initialize()
 
-    def motor_initialize(self):
+        self.running = False
+        self.angle = None
+        self.write_lock = Lock()
+        self.write_thread = None
+        self.start()
+        
+
+    def _motor_initialize(self):
         self.control = kit.servo[self.pin]
-        #self.control.actuation_range = self.max_degree
-        #self.control.set_pulse_width_range(self.min_freq, self.max_freq)
-        self.change_angle(0)
+        # self.control.actuation_range = self.max_degree
+        # self.control.set_pulse_width_range(self.min_freq, self.max_freq)
+        # self.change_angle(0)
+
+    def start(self):
+        if self.running:
+            print('Motor is already running')
+            return None
+        else:
+            self.running = True
+            self.angle = 0
+            self.write_thread = Thread(target=self._motor_thread)
+            self.write_thread.start()
+            return self
+
+    def _motor_thread(self):
+        while self.running:
+            self.write_lock.acquire()
+            self.control.angle = self.angle
 
     def change_angle(self, angle):
-        self.control.angle = angle
+        if angle != self.angle:
+            self.angle = angle
+            if self.write_lock.locked():
+                self.write_lock.release()
+
+    def stop(self):
+        print(self.pin, "motor is shutting down...")
+        if self.running:
+            self.running = False
+            if self.write_lock.locked():
+                self.write_lock.release()
+            self.write_thread.join()
+            print(self.pin, "motor is shut down...")
+        else:
+            print(self.pin, "motor is already shut down...")
 
 
 class RovMovement:
@@ -171,6 +203,7 @@ class RovMovement:
             motor.run_counterclockwise(power_per_motor)
 
     def turn_left(self, power):
+        power = power / 10
         power_per_motor = int(power / 4)
         self.xy_rf.run_clockwise(power_per_motor)
         self.xy_lf.run_counterclockwise(power_per_motor)
@@ -178,6 +211,7 @@ class RovMovement:
         self.xy_rb.run_counterclockwise(power_per_motor)
 
     def turn_right(self, power):
+        power = power / 10
         power_per_motor = int(power / 4)
         self.xy_rf.run_counterclockwise(power_per_motor)
         self.xy_lf.run_clockwise(power_per_motor)
@@ -219,10 +253,10 @@ class RovMovement:
         self.arm.change_angle(0)
         self.arm_status = False
 
-    def toggle_arm(self):
-        if self.arm_status:
+    def toggle_arm(self, arm_status=None):
+        if self.arm_status and (arm_status is None or arm_status == False):
             self.close_arm()
-        else:
+        elif not self.arm_status and (arm_status is None or arm_status == True):
             self.open_arm()
 
     def run_all_motors_cw(self, power):
@@ -236,62 +270,87 @@ class RovMovement:
     def stop(self):
         for motor in self.all_motors_list:
             motor.stop()
+        self.arm.stop()
 
     def close(self):
         self.stop()
 
 
-
-
 if __name__ == '__main__':
-    rov_movement = RovMovement(xy_lf_pin=0, xy_rf_pin=1, xy_lb_pin=2, xy_rb_pin=3,
-                               z_lf_pin=4, z_rf_pin=5, z_lb_pin=6, z_rb_pin=7, arm_pin=8)
     try:
-        import getch
+        for i in range(6, 8):
+            print("pin:", i)
+            m = ContinuousRotationServo(i)
+            for j in range(30):
+                print("power:", j)
+                m.run_bidirectional(j)
+                sleep(0.1)
+            for j in range(30, -30, -1):
+                print("power:", j)
+                m.run_bidirectional(j)
+                sleep(0.1)
+            for j in range(-30,1):
+                print("power:", j)
+                m.run_bidirectional(j)
+                sleep(0.1)
+            sleep(2)
+    except KeyboardInterrupt:
+        print("KeyboardInterrupt yakalandı")
 
-        power = 0
-        char = "w"
-        while True:
-            previous = char
-            char = getch.getch()
-            if previous != char:
-                rov_movement.stop()
+    # rov_movement = RovMovement(xy_lf_pin=0, xy_rf_pin=1, xy_lb_pin=2, xy_rb_pin=3,
+    #                            z_lf_pin=4, z_rf_pin=5, z_lb_pin=6, z_rb_pin=7, arm_pin=8)
+    # try:
+    #     import getch
+    #
+    #     power = 0
+    #     char = "w"
+    #     while True:
+    #         previous = char
+    #         char = getch.getch()
+    #         if previous != char:
+    #             rov_movement.stop()
+    #
+    #         if char == "a":
+    #             print("Hareket: sola git", "\tGüç:", power)
+    #             rov_movement.go_xy(power, 270)
+    #         elif char == "s":
+    #             print("Hareket: geri git", "\tGüç:", power)
+    #             rov_movement.go_xy(power, 180)
+    #         elif char == "d":
+    #             print("Hareket: sağa git", "\tGüç:", power)
+    #             rov_movement.go_xy(power, 90)
+    #         elif char == "w":
+    #             print("Hareket: ileri git", "\tGüç:", power)
+    #             rov_movement.go_xy(power, 0)
+    #         elif char == "y":
+    #             print("Hareket: yüksel", "\tGüç:", power)
+    #             rov_movement.go_up(power)
+    #         elif char == "u":
+    #             print("Hareket: alçal", "\tGüç:", power)
+    #             rov_movement.go_down(power)
+    #         elif char == "q":
+    #             print("Hareket: sola dön", "\tGüç:", power)
+    #             rov_movement.turn_left(power)
+    #         elif char == "e":
+    #             print("Hareket: sağa dön", "\tGüç:", power)
+    #             rov_movement.turn_right(power)
+    #         elif char == "j":
+    #             print("Hareket: güçü arttır", "\tGüç:", power)
+    #             if power <= 90:
+    #                 power += 10
+    #         elif char == "k":
+    #             print("Hareket: güçü azalt", "\tGüç:", power)
+    #             if power >= 10:
+    #                 power -= 10
+    #         else:
+    #             rov_movement.stop()
+    #             print("Tanımsız karaktere basıldı")
+    # except KeyboardInterrupt:
+    #     print("KeyboardInterrupt yakalandı")
+    # finally:
+    #     rov_movement.close()
 
-            if char == "a":
-                print("Hareket: sola git", "\tGüç:", power)
-                rov_movement.go_xy(power, 270)
-            elif char == "s":
-                print("Hareket: geri git", "\tGüç:", power)
-                rov_movement.go_xy(power, 180)
-            elif char == "d":
-                print("Hareket: sağa git", "\tGüç:", power)
-                rov_movement.go_xy(power, 90)
-            elif char == "w":
-                print("Hareket: ileri git", "\tGüç:", power)
-                rov_movement.go_xy(power, 0)
-            elif char == "y":
-                print("Hareket: yüksel", "\tGüç:", power)
-                rov_movement.go_up(power)
-            elif char == "u":
-                print("Hareket: alçal", "\tGüç:", power)
-                rov_movement.go_down(power)
-            elif char == "q":
-                print("Hareket: sola dön", "\tGüç:", power)
-                rov_movement.turn_left(power)
-            elif char == "e":
-                print("Hareket: sağa dön", "\tGüç:", power)
-                rov_movement.turn_right(power)
-            elif char == "j":
-                print("Hareket: güçü arttır", "\tGüç:", power)
-                if power <= 90:
-                    power += 10
-            elif char == "k":
-                print("Hareket: güçü azalt", "\tGüç:", power)
-                if power >= 10:
-                    power -= 10
-            else:
-                rov_movement.stop()
-                print("Tanımsız karaktere basıldı")
+
     # try:
     #     secenek = input("1: Saat yönünün tersine son hızdan, saat yönünde son hıza\n"
     #                     "2: Elle güç gir\n"
@@ -360,7 +419,5 @@ if __name__ == '__main__':
     #                       "Kapatmak için 'c' giriniz\n")
     #     else:
     #         print("Your input is '" + secenek + "'. Please enter valid input.")
-    except KeyboardInterrupt:
-        print("KeyboardInterrupt yakalandı")
-
-    rov_movement.close()
+    # except KeyboardInterrupt:
+    #     print("KeyboardInterrupt yakalandı")
