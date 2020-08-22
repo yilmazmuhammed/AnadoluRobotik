@@ -1,3 +1,4 @@
+import json
 import math
 from queue import Queue
 from threading import Thread, Lock
@@ -24,7 +25,7 @@ class ContinuousRotationServo:
 
         self.running = True
         self.queue = Queue()
-        self.throttle = 0
+        self.power = 0
         self.lock = Lock()
         self.thread = Thread(target=self.motor_thread, args=(self.queue,))
         self.thread.start()
@@ -37,7 +38,7 @@ class ContinuousRotationServo:
         while self.running:
             # throttle = queue.get()
             self.lock.acquire()
-            throttle = self.throttle
+            throttle = self.power
             if prev_power == throttle:
                 continue
             else:
@@ -51,11 +52,32 @@ class ContinuousRotationServo:
                         sleep(slp)
                 control.throttle = self.force_to_throttle(throttle)
                 prev_power = throttle
-        self.throttle = 0
+        self.power = 0
 
-    def force_to_throttle(self, power):
-        throttle = 0
-        return throttle
+    @staticmethod
+    def force_to_throttle(power_):
+        with open('t200.json', 'r') as j:
+            sozluk = json.load(j)
+        p_key = None
+        o_key = None
+        l_key = None
+        for key in sozluk.keys():
+            key = int(key)
+            if power_ == key:
+                o_key = key
+                break
+            elif power_ > key:
+                p_key = key
+            else:
+                l_key = key
+                break
+        if not o_key:
+            p_value = sozluk.get(str(p_key))
+            l_value = sozluk.get(str(l_key))
+            o_value = (l_value - p_value) / (int(l_key) - int(p_key)) + p_value
+        else:
+            o_value = sozluk.get(o_key)
+        return (o_value-1500)/400+0
 
     def motor_initialize(self):
         self.control = kit.continuous_servo[self.pin]
@@ -67,8 +89,8 @@ class ContinuousRotationServo:
                       positive values​make it work forward.
         :return:
         """
-        if power != self.throttle:
-            self.throttle = power
+        if power != self.power:
+            self.power = power
             if self.lock.locked():
                 self.lock.release()
 
@@ -103,7 +125,7 @@ class ContinuousRotationServo:
         if self.running:
             print(self.pin, "motor kapatılıyor...")
             self.running = False
-            self.throttle = 0
+            self.power = 0
             if self.lock.locked():
                 self.lock.release()
             self.thread.join()
