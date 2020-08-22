@@ -49,12 +49,17 @@ class ContinuousRotationServo:
                     for i in range(prev_power-1, throttle-1, -5):
                         control.throttle = i/100
                         sleep(slp)
-                control.throttle = throttle/100
+                control.throttle = self.force_to_throttle(throttle)
                 prev_power = throttle
         self.throttle = 0
 
+    def force_to_throttle(self, power):
+        throttle = 0
+        return throttle
+
     def motor_initialize(self):
         self.control = kit.continuous_servo[self.pin]
+        self.control.set_pulse_width_range(1135, 1935)
 
     def _change_power(self, power):
         """
