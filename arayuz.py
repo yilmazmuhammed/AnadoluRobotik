@@ -50,8 +50,8 @@ class SampleApp(tk.Tk):
             # will be the one that is visible.
             frame.grid(row=0, column=0, sticky="nsew")
 
-        self.rov_movement = RovMovement(xy_lf_pin=2, xy_rf_pin=0, xy_lb_pin=1, xy_rb_pin=6,
-                                        z_lf_pin=5, z_rf_pin=3, z_lb_pin=7, z_rb_pin=4, arm_pin=8,
+        self.rov_movement = RovMovement(xy_lf_pin="-2", xy_rf_pin="0", xy_lb_pin="-1", xy_rb_pin="6",
+                                        z_lf_pin="-5", z_rf_pin="3", z_lb_pin="-7", z_rb_pin="4", arm_pin=8,
                                         initialize_motors=True
                                         )
 
@@ -270,10 +270,10 @@ class ObservationPage(tk.Frame):
         self.update_camera_thread()
 
         ports = {
-            "front": "/dev/ttyUSB0",
-            "left": "/dev/ttyUSB1",
+            # "front": "/dev/ttyUSB0",
+            # "left": "/dev/ttyUSB1",
             # "right": "/dev/ttyUSB2",
-            "bottom": "/dev/ttyTHS1"
+            # "bottom": "/dev/ttyTHS1"
         }
         self.rov_lidars = RovLidars(ports=ports, output_file="lidars.txt")
         self.rov_lidars.start()
@@ -420,7 +420,7 @@ def update_from_joystick(frame, rov_movement):
                     else:
                         rov_movement.turn_left(abs(turn_power))
                 else:
-                    rov_movement.go_xy_and_turn(0, 0)
+                    rov_movement.go_xy_and_turn(0, 0, 0)
 
                 prev_joystick_values = copy.deepcopy(joystick_values)
                 print(joystick_values)

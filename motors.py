@@ -44,12 +44,12 @@ class ContinuousRotationServo:
                 continue
             else:
                 if throttle - prev_power > 5:
-                    for i in range(prev_power+1, throttle+1, 5):
-                        control.throttle = i/100
+                    for i in range(prev_power + 1, throttle + 1, 5):
+                        control.throttle = i / 100
                         sleep(slp)
                 elif prev_power - throttle > 5:
-                    for i in range(prev_power-1, throttle-1, -5):
-                        control.throttle = i/100
+                    for i in range(prev_power - 1, throttle - 1, -5):
+                        control.throttle = i / 100
                         sleep(slp)
                 control.throttle = self.force_to_throttle(throttle * self.pervane)
                 prev_power = throttle
@@ -147,7 +147,6 @@ class StandardServo:
         self.write_lock = Lock()
         self.write_thread = None
         self.start()
-        
 
     def _motor_initialize(self):
         self.control = kit.servo[self.pin]
@@ -190,7 +189,8 @@ class StandardServo:
 
 
 class RovMovement:
-    def __init__(self, xy_lf_pin, xy_rf_pin, xy_lb_pin, xy_rb_pin, z_lf_pin, z_rf_pin, z_lb_pin, z_rb_pin, arm_pin, initialize_motors=True):
+    def __init__(self, xy_lf_pin, xy_rf_pin, xy_lb_pin, xy_rb_pin, z_lf_pin, z_rf_pin, z_lb_pin, z_rb_pin, arm_pin,
+                 initialize_motors=True):
         self.xy_lf = ContinuousRotationServo(xy_lf_pin)
         self.xy_rf = ContinuousRotationServo(xy_rf_pin)
         self.xy_lb = ContinuousRotationServo(xy_lb_pin)
@@ -230,7 +230,7 @@ class RovMovement:
             motor.run_counterclockwise(power_per_motor)
 
     def turn_left(self, power):
-        power = power / 10
+        power = power / 4
         power_per_motor = int(power / 4)
         self.xy_rf.run_clockwise(power_per_motor)
         self.xy_lf.run_counterclockwise(power_per_motor)
@@ -238,7 +238,7 @@ class RovMovement:
         self.xy_rb.run_counterclockwise(power_per_motor)
 
     def turn_right(self, power):
-        power = power / 10
+        power = power / 4
         power_per_motor = int(power / 4)
         self.xy_rf.run_counterclockwise(power_per_motor)
         self.xy_lf.run_clockwise(power_per_motor)
@@ -285,7 +285,7 @@ class RovMovement:
                            Negative value -> Turn left
         :return:
         """
-        turn_power = turn_power / 10
+        turn_power = turn_power / 4
         turn_power_per_motor = int(turn_power / 4)
         go_power_per_motor = int(power / 2)
 
@@ -348,7 +348,7 @@ if __name__ == '__main__':
                 print("power:", j)
                 m.run_bidirectional(j)
                 sleep(0.1)
-            for j in range(-30,1):
+            for j in range(-30, 1):
                 print("power:", j)
                 m.run_bidirectional(j)
                 sleep(0.1)
@@ -408,7 +408,6 @@ if __name__ == '__main__':
     #     print("KeyboardInterrupt yakalandı")
     # finally:
     #     rov_movement.close()
-
 
     # try:
     #     secenek = input("1: Saat yönünün tersine son hızdan, saat yönünde son hıza\n"
