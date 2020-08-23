@@ -25,34 +25,31 @@ class ContinuousRotationServo:
         self.motor_initialize()
 
         self.running = True
-        self.queue = Queue()
         self.power = 0
         self.lock = Lock()
-        self.thread = Thread(target=self.motor_thread, args=(self.queue,))
+        self.thread = Thread(target=self.motor_thread)
         self.thread.start()
 
-    def motor_thread(self, queue):
+    def motor_thread(self):
         slp = 0.01
         prev_power = 0
-        throttle = 0
         control = self.control
         while self.running:
-            # throttle = queue.get()
             self.lock.acquire()
-            throttle = self.power
-            if prev_power == throttle:
+            current_power = self.power
+            if prev_power == current_power:
                 continue
             else:
-                if throttle - prev_power > 5:
-                    for i in range(prev_power + 1, throttle + 1, 5):
+                if current_power - prev_power > 5:
+                    for i in range(prev_power + 1, current_power + 1, 5):
                         control.throttle = i / 100
                         sleep(slp)
-                elif prev_power - throttle > 5:
-                    for i in range(prev_power - 1, throttle - 1, -5):
+                elif prev_power - current_power > 5:
+                    for i in range(prev_power - 1, current_power - 1, -5):
                         control.throttle = i / 100
                         sleep(slp)
-                control.throttle = self.force_to_throttle(throttle * self.pervane)
-                prev_power = throttle
+                control.throttle = self.force_to_throttle(current_power * self.pervane)
+                prev_power = current_power
         self.power = 0
 
     @staticmethod
