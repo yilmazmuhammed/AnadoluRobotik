@@ -1,6 +1,5 @@
 import json
 import math
-from queue import Queue
 from threading import Thread, Lock
 from time import sleep
 from adafruit_servokit import ServoKit
