@@ -1,6 +1,6 @@
 from datetime import datetime
 from pathlib import Path
-from time import sleep
+from time import time
 
 import cv2
 import threading
@@ -9,7 +9,6 @@ from imutils.video import FPS
 
 
 class CSI_Camera:
-
     def __init__(self, output_file=""):
         # Initialize instance variables
         # OpenCV video capture element
@@ -21,11 +20,14 @@ class CSI_Camera:
         self.read_thread = None
         self.read_lock = threading.Lock()
         self.running = False
+
         self.output = None
+        self.output_file_name = None
+        self.output_thread = None
+        self.output_lock = threading.Lock()
         if output_file != "":
             Path("logs").mkdir(parents=True, exist_ok=True)
-            output_file = "logs/" + datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + "_camera_" + output_file
-            self.output = cv2.VideoWriter(output_file, cv2.VideoWriter_fourcc(*'XVID'), 20.0, (640, 480))
+            self.output_file_name = "logs/" + datetime.now().strftime('%Y-%m-%d_%H-%M-%S') + "_camera_" + output_file
 
     def open(self, camera, is_gstreamer=True):
         try:
@@ -38,6 +40,11 @@ class CSI_Camera:
                 self.video_capture = cv2.VideoCapture(camera, cv2.CAP_GSTREAMER)
             else:
                 self.video_capture = cv2.VideoCapture(camera)
+            if self.output_file_name:
+                self.output = cv2.VideoWriter(
+                    self.output_file_name, cv2.VideoWriter_fourcc(*'XVID'), 20.0,
+                    (int(self.video_capture.get(3)), int(self.video_capture.get(4)))
+                )
 
         except RuntimeError:
             self.video_capture = None
@@ -56,41 +63,65 @@ class CSI_Camera:
             self.running = True
             self.read_thread = threading.Thread(target=self.read_from_camera)
             self.read_thread.start()
+
+        if self.output:
+            self.output_thread = threading.Thread(target=self.write_to_file)
+            self.output_thread.start()
+
         return self
 
     def stop(self):
         self.running = False
-        self.read_thread.join()
+        if self.read_thread:
+            self.read_thread.join()
+        if self.output_thread:
+            self.output_thread.join()
 
     def read_from_camera(self):
         # This is the thread to read images from the camera
         fps_ = FPS().start()
         while self.running:
             try:
-                grabbed, frame_ = self.video_capture.read()
+                grabbed_, frame_ = self.video_capture.read()
                 with self.read_lock:
-                    self.grabbed = grabbed
+                    self.grabbed = grabbed_
                     self.frame = frame_
-                if self.output:
-                    f = frame_.copy()
-                    cv2.putText(f, str(datetime.now()), (5, 15), cv2.FONT_HERSHEY_SIMPLEX, .5, (255, 255, 255), 1,
-                                cv2.LINE_AA)
-                    self.output.write(f)
+                    if self.output_lock.locked():
+                        self.output_lock.release()
                 fps_.update()
             except RuntimeError:
                 print("Could not read image from camera")
-            sleep(0.01)
+            # sleep(0.01)
         fps_.stop()
-        print("[CAMERA] elasped time: {:.2f}".format(fps_.elapsed()))
-        print("[CAMERA] approx. FPS: {:.2f}".format(fps_.fps()))
-        # FIX ME - stop and cleanup thread
-        # Something bad happened
+        print("[KAMERA] elasped time: {:.2f}".format(fps_.elapsed()))
+        print("[KAMERA] approx. FPS: {:.2f}".format(fps_.fps()))
+
+    def write_to_file(self):
+        if not self.output:
+            return
+        fps_ = FPS().start()
+        a = time()
+        while self.running:
+            self.output_lock.acquire()
+            frame_ = self.frame.copy()
+            b = time()
+            fps_ = 1 / (b - a)
+            cv2.putText(frame_, str(datetime.now()), (5, 15), cv2.FONT_HERSHEY_SIMPLEX, .5, (255, 255, 255), 1,
+                        cv2.LINE_AA)
+            cv2.putText(frame_, "FPS: " + str(fps_), (5, 30), cv2.FONT_HERSHEY_SIMPLEX, .5, (255, 255, 255), 1,
+                        cv2.LINE_AA)
+            a = time()
+            self.output.write(frame_)
+            fps_.update()
+        fps_.stop()
+        print("[KAYDETME] elasped time: {:.2f}".format(fps_.elapsed()))
+        print("[KAYDETME] approx. FPS: {:.2f}".format(fps_.fps()))
 
     def read(self):
         with self.read_lock:
             frame_ = self.frame.copy()
-            grabbed = self.grabbed
-        return grabbed, frame_
+            grabbed_ = self.grabbed
+        return grabbed_, frame_
 
     def release(self):
         if self.video_capture is not None:
@@ -101,6 +132,8 @@ class CSI_Camera:
         # Now kill the thread
         if self.read_thread is not None:
             self.read_thread.join()
+        if self.output_thread:
+            self.output_thread.join()
 
 
 # Currently there are setting frame rate on CSI Camera on Nano through gstreamer
@@ -140,8 +173,9 @@ def gstreamer_pipeline(
 if __name__ == '__main__':
     # Create a VideoCapture object and read from input file
     # If the input is the camera, pass 0 instead of the video file name
-    cap = CSI_Camera(output_file="out.avi")
-    cap.open("http://192.168.1.36:4747/mjpegfeed?640x480", is_gstreamer=False)
+    cap = CSI_Camera(output_file="out_thread.avi")
+    # cap.open("http://192.168.1.36:4747/mjpegfeed?640x480", is_gstreamer=False)
+    cap.open(gstreamer_pipeline())
     cap.start()
 
     # Check if camera opened successfully

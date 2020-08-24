@@ -10,3 +10,4 @@ adafruit-circuitpython-servokit
 imutils
 numpy~=1.19.0
 opencv-python~=4.4.0.42
+adafruit-circuitpython-lsm9ds1
