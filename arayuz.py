@@ -267,10 +267,10 @@ class ObservationPage(tk.Frame):
         self.right_camera_label.grid(row=1, column=1, padx=10)
         cameras_frame.grid(row=1, column=0, columnspan=3, padx=10, pady=(70, 10))
 
-        self.left_camera = CSI_Camera()
-        self.right_camera = CSI_Camera()
-        self.update_camera_thread()
+        self.left_camera = CSI_Camera(output_file="left.avi")
+        self.right_camera = CSI_Camera(output_file="right.avi")
         self.fps = FPS()
+        self.update_camera_thread()
 
         ports = {
             # "front": "/dev/ttyUSB0",
@@ -315,7 +315,7 @@ class ObservationPage(tk.Frame):
         self.right_camera_label.imgtk = right_imgtk
         self.right_camera_label.configure(image=right_imgtk)
         self.fps.update()
-        self.after(50, self.update_cameras)
+        self.after(10, self.update_cameras)
 
     def update_camera_thread(self):
         self.left_camera.open(
