@@ -10,6 +10,8 @@ from random import randint
 from threading import Thread
 from tkinter import font as tkfont
 
+from imutils.video import FPS
+
 from csi_camera import CSI_Camera, gstreamer_pipeline
 from joystick import Joystick
 from lidars import RovLidars
@@ -19,8 +21,8 @@ arayuz_running = True
 
 # TODO arayüz kapanırken rov_movement.stop()
 
-class SampleApp(tk.Tk):
 
+class SampleApp(tk.Tk):
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
 
@@ -268,6 +270,7 @@ class ObservationPage(tk.Frame):
         self.left_camera = CSI_Camera()
         self.right_camera = CSI_Camera()
         self.update_camera_thread()
+        self.fps = FPS()
 
         ports = {
             # "front": "/dev/ttyUSB0",
@@ -311,7 +314,7 @@ class ObservationPage(tk.Frame):
         right_imgtk = ImageTk.PhotoImage(image=right_img)
         self.right_camera_label.imgtk = right_imgtk
         self.right_camera_label.configure(image=right_imgtk)
-
+        self.fps.update()
         self.after(50, self.update_cameras)
 
     def update_camera_thread(self):
@@ -325,10 +328,14 @@ class ObservationPage(tk.Frame):
         if not self.left_camera.video_capture.isOpened() or not self.right_camera.video_capture.isOpened():
             # Cameras did not open, or no camera attached
             raise Exception("Unable to open any cameras")
+        self.fps.start()
         self.update_cameras()
 
     def destroy(self):
         print("Kameralar kapatılıyor...")
+        self.fps.stop()
+        print("[ARAYUZ] elasped time: {:.2f}".format(self.fps.elapsed()))
+        print("[ARAYUZ] approx. FPS: {:.2f}".format(self.fps.fps()))
         self.left_camera.stop()
         self.left_camera.release()
         self.right_camera.stop()

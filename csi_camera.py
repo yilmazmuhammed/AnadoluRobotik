@@ -5,6 +5,8 @@ from time import sleep
 import cv2
 import threading
 
+from imutils.video import FPS
+
 
 class CSI_Camera:
 
@@ -62,6 +64,7 @@ class CSI_Camera:
 
     def read_from_camera(self):
         # This is the thread to read images from the camera
+        fps_ = FPS().start()
         while self.running:
             try:
                 grabbed, frame_ = self.video_capture.read()
@@ -73,10 +76,13 @@ class CSI_Camera:
                     cv2.putText(f, str(datetime.now()), (5, 15), cv2.FONT_HERSHEY_SIMPLEX, .5, (255, 255, 255), 1,
                                 cv2.LINE_AA)
                     self.output.write(f)
+                fps_.update()
             except RuntimeError:
                 print("Could not read image from camera")
             sleep(0.01)
-
+        fps_.stop()
+        print("[CAMERA] elasped time: {:.2f}".format(fps_.elapsed()))
+        print("[CAMERA] approx. FPS: {:.2f}".format(fps_.fps()))
         # FIX ME - stop and cleanup thread
         # Something bad happened
 
@@ -142,23 +148,28 @@ if __name__ == '__main__':
     if not cap.video_capture.isOpened():
         print("Error opening video stream or file")
 
+    fps = FPS().start()
+
     # Read until video is completed
     while cap.video_capture.isOpened():
         # Capture frame-by-frame
-        ret, frame = cap.read()
-        if ret:
-
-            # Display the resulting frame
-            cv2.imshow('Frame', frame)
-            # output.write(frame)
-
-            # Press Q on keyboard to  exit
-            if cv2.waitKey(25) & 0xFF == ord('q'):
-                break
-
-        # Break the loop
-        else:
+        grabbed, frame = cap.read()
+        if not grabbed:
             break
+
+        # Display the resulting frame
+        cv2.imshow('Frame', frame)
+
+        # Press Q on keyboard to  exit
+        if cv2.waitKey(25) & 0xFF == ord('q'):
+            break
+
+        fps.update()
+
+    # stop the timer and display FPS information
+    fps.stop()
+    print("[GORUNTULEME] elasped time: {:.2f}".format(fps.elapsed()))
+    print("[GORUNTULEME] approx. FPS: {:.2f}".format(fps.fps()))
 
     # When everything done, release the video capture object
     cap.stop()
