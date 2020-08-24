@@ -30,7 +30,9 @@ class CSI_Camera:
             if is_gstreamer:
                 # For save video
                 # https://forums.developer.nvidia.com/t/how-to-save-video-with-2-camera-pi-with-jeston-nano/145882
-                # gst-launch-1.0 nvarguscamerasrc sensor-id=0 num-buffers=300 ! 'video/x-raw(memory:NVMM), width=1280, height=720, framerate=30/1' ! nvtee ! omxh264enc bitrate=20000000 ! qtmux ! filesink location=video.mp4
+                # gst-launch-1.0 nvarguscamerasrc sensor-id=0 num-buffers=300 !
+                # 'video/x-raw(memory:NVMM), width=1280, height=720, framerate=30/1' ! nvtee !
+                # omxh264enc bitrate=20000000 ! qtmux ! filesink location=video.mp4
                 self.video_capture = cv2.VideoCapture(camera, cv2.CAP_GSTREAMER)
             else:
                 self.video_capture = cv2.VideoCapture(camera)
@@ -48,9 +50,9 @@ class CSI_Camera:
             print('Video capturing is already running')
             return None
         # create a thread to read the camera image
-        if self.video_capture != None:
+        if self.video_capture is not None:
             self.running = True
-            self.read_thread = threading.Thread(target=self.updateCamera)
+            self.read_thread = threading.Thread(target=self.read_from_camera)
             self.read_thread.start()
         return self
 
@@ -58,16 +60,16 @@ class CSI_Camera:
         self.running = False
         self.read_thread.join()
 
-    def updateCamera(self):
+    def read_from_camera(self):
         # This is the thread to read images from the camera
         while self.running:
             try:
-                grabbed, frame = self.video_capture.read()
+                grabbed, frame_ = self.video_capture.read()
                 with self.read_lock:
                     self.grabbed = grabbed
-                    self.frame = frame
+                    self.frame = frame_
                 if self.output:
-                    f = frame.copy()
+                    f = frame_.copy()
                     cv2.putText(f, str(datetime.now()), (5, 15), cv2.FONT_HERSHEY_SIMPLEX, .5, (255, 255, 255), 1,
                                 cv2.LINE_AA)
                     self.output.write(f)
@@ -80,18 +82,18 @@ class CSI_Camera:
 
     def read(self):
         with self.read_lock:
-            frame = self.frame.copy()
+            frame_ = self.frame.copy()
             grabbed = self.grabbed
-        return grabbed, frame
+        return grabbed, frame_
 
     def release(self):
-        if self.video_capture != None:
+        if self.video_capture is not None:
             self.video_capture.release()
             if self.output:
                 self.output.release()
             self.video_capture = None
         # Now kill the thread
-        if self.read_thread != None:
+        if self.read_thread is not None:
             self.read_thread.join()
 
 
