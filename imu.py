@@ -99,6 +99,9 @@ class Imu:
         return self._sensor.acceleration
 
     def get_instant_magnetic(self):
+        # mag_x = magReadX * cos(pitch) + magReadY * sin(roll) * sin(pitch) + magReadZ * cos(roll) * sin(pitch)
+        # mag_y = magReadY * cos(roll) - magReadZ * sin(roll)
+        # yaw = 180 * atan2(-mag_y, mag_x) / M_PI;
         return self._sensor.magnetic
 
     def get_instant_gyro(self):
@@ -115,9 +118,9 @@ class Imu:
             unit_acc_x = acc_x / acc_magnitude
             unit_acc_y = acc_y / acc_magnitude
             unit_acc_z = acc_z / acc_magnitude
-            degree_x = math.atan2((-unit_acc_x), math.sqrt(unit_acc_y ** 2 + unit_acc_z ** 2)) * 180 / math.pi
-            degree_y = math.atan2((-unit_acc_y), math.sqrt(unit_acc_x ** 2 + unit_acc_z ** 2)) * 180 / math.pi
-            degree_z = math.atan2((-unit_acc_y), math.sqrt(unit_acc_x ** 2 + unit_acc_z ** 2)) * 180 / math.pi
+            degree_x = math.atan2((-unit_acc_x), math.sqrt(unit_acc_y ** 2 + unit_acc_z ** 2)) * 180 / math.pi  # PITCH
+            degree_y = math.atan2((-unit_acc_y), math.sqrt(unit_acc_x ** 2 + unit_acc_z ** 2)) * 180 / math.pi  # ROLL
+            degree_z = math.atan2((-unit_acc_z), math.sqrt(unit_acc_x ** 2 + unit_acc_y ** 2)) * 180 / math.pi
         else:
             degree_x, degree_y, degree_z = 0, 0, 0
         return degree_x, degree_y, degree_z

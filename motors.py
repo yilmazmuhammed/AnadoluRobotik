@@ -5,7 +5,6 @@ from time import sleep
 from adafruit_servokit import ServoKit
 
 kit = ServoKit(channels=16)
-p2t = {}
 
 
 class NotInCorrectRange(Exception):
@@ -13,15 +12,15 @@ class NotInCorrectRange(Exception):
 
 
 class ContinuousRotationServo:
-    max_freq = 1900
-    min_freq = 1100
-    middle_point = (max_freq + min_freq) / 2
-    power_multiplier = ((max_freq - min_freq) / 2) / 100
-
-    def __init__(self, pin):
+    def __init__(self, pin, min_freq=1135, max_freq=1935, ssc_control=True, p2t=None):
         self.control = None
         self.pin = abs(int(pin))
-        self.pervane = -1 if pin[0] == "-" else 1
+        self.propeller_direction = -1 if pin[0] == "-" else 1
+        self.min_freq = min_freq
+        self.max_freq = max_freq
+        self.ssc_control = ssc_control
+        self.p2t = p2t
+
         self.motor_initialize()
 
         self.running = True
@@ -31,41 +30,53 @@ class ContinuousRotationServo:
         self.thread.start()
 
     def motor_thread(self):
-        slp = 0.01
+        # Sudden speed change control
+        ssc_sleep = 0.01
+        ssc_step = 5
         prev_power = 0
-        control = self.control
         while self.running:
             self.lock.acquire()
             current_power = self.power
             if prev_power == current_power:
                 continue
             else:
-                if current_power - prev_power > 5:
-                    for i in range(prev_power + 1, current_power + 1, 5):
-                        control.throttle = i / 100
-                        sleep(slp)
-                elif prev_power - current_power > 5:
-                    for i in range(prev_power - 1, current_power - 1, -5):
-                        control.throttle = i / 100
-                        sleep(slp)
-                control.throttle = self.power_to_throttle(current_power * self.pervane)
+                if self.ssc_control:
+                    dif = current_power - prev_power
+                    if abs(dif) > ssc_step:
+                        sign = int(dif/abs(dif))
+                        for cp in range(prev_power + sign*ssc_step, current_power + sign, sign*ssc_step):
+                            self._control_change_throttle(cp)
+                            sleep(ssc_sleep)
+                    # if current_power - prev_power > ssc_step:
+                    #     for i in range(prev_power + 1, current_power + 1, ssc_step):
+                    #         self._control_change_throttle(i)
+                    #         # self.control.throttle = i / 100
+                    #         sleep(ssc_sleep)
+                    # elif prev_power - current_power > ssc_step:
+                    #     for i in range(prev_power - 1, current_power - 1, -ssc_step):
+                    #         self._control_change_throttle(i)
+                    #         # self.control.throttle = i / 100
+                    #         sleep(ssc_sleep)
+                self._control_change_throttle(current_power)
+                # self.control.throttle = self.power_to_throttle(current_power * self.propeller_direction)
                 prev_power = current_power
-        self.power = 0
+        self._control_change_throttle(0)
 
-    @staticmethod
-    def power_to_throttle(power):
+    def _control_change_throttle(self, power):
+        if self.p2t:
+            self.control.throttle = self.power_to_throttle(power * self.propeller_direction)
+        else:
+            self.control.throttle = power/100
+
+    def power_to_throttle(self, power):
         if not -100 <= power <= 100:
             raise NotInCorrectRange("Power must be between -100 and 100.")
 
-        global p2t
-        if not p2t:
-            with open('p2t.json', 'r') as j:
-                p2t = json.load(j)
-        return p2t[power]
+        return self.p2t[power]
 
     def motor_initialize(self):
         self.control = kit.continuous_servo[self.pin]
-        self.control.set_pulse_width_range(1135, 1935)
+        self.control.set_pulse_width_range(self.min_freq, self.max_freq)
 
     def _change_power(self, power):
         """
@@ -174,15 +185,17 @@ class StandardServo:
 
 class RovMovement:
     def __init__(self, xy_lf_pin, xy_rf_pin, xy_lb_pin, xy_rb_pin, z_lf_pin, z_rf_pin, z_lb_pin, z_rb_pin, arm_pin,
-                 initialize_motors=True):
-        self.xy_lf = ContinuousRotationServo(xy_lf_pin)
-        self.xy_rf = ContinuousRotationServo(xy_rf_pin)
-        self.xy_lb = ContinuousRotationServo(xy_lb_pin)
-        self.xy_rb = ContinuousRotationServo(xy_rb_pin)
-        self.z_lf = ContinuousRotationServo(z_lf_pin)
-        self.z_rf = ContinuousRotationServo(z_rf_pin)
-        self.z_lb = ContinuousRotationServo(z_lb_pin)
-        self.z_rb = ContinuousRotationServo(z_rb_pin)
+                 initialize_motors=True, sc_control=True):
+        with open('p2t.json', 'r') as json_file:
+            p2t = json.load(json_file)
+        self.xy_lf = ContinuousRotationServo(xy_lf_pin, sc_control=sc_control, p2t=p2t)
+        self.xy_rf = ContinuousRotationServo(xy_rf_pin, sc_control=sc_control, p2t=p2t)
+        self.xy_lb = ContinuousRotationServo(xy_lb_pin, sc_control=sc_control, p2t=p2t)
+        self.xy_rb = ContinuousRotationServo(xy_rb_pin, sc_control=sc_control, p2t=p2t)
+        self.z_lf = ContinuousRotationServo(z_lf_pin, sc_control=sc_control, p2t=p2t)
+        self.z_rf = ContinuousRotationServo(z_rf_pin, sc_control=sc_control, p2t=p2t)
+        self.z_lb = ContinuousRotationServo(z_lb_pin, sc_control=sc_control, p2t=p2t)
+        self.z_rb = ContinuousRotationServo(z_rb_pin, sc_control=sc_control, p2t=p2t)
         self.arm = StandardServo(arm_pin)
         self.z_motors_list = [self.z_lf, self.z_rf, self.z_lb, self.z_rb]
         self.xy_motors_list = [self.xy_lf, self.xy_rf, self.xy_lb, self.xy_rb]
@@ -193,9 +206,8 @@ class RovMovement:
             self._initialize_motors()
         sleep(2)
 
-    def _initialize_motors(self):
+    def _initialize_motors(self, mp=30):
         print("All motors initializing...")
-        mp = 30
         for i in list(range(0, mp)) + list(range(mp, -mp, -1)) + list(range(-mp, 1)):
             print("Power:", i)
             for motor in self.all_motors_list:
