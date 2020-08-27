@@ -43,8 +43,8 @@ class ContinuousRotationServo:
                 if self.ssc_control:
                     dif = current_power - prev_power
                     if abs(dif) > ssc_step:
-                        sign = int(dif/abs(dif))
-                        for cp in range(prev_power + sign*ssc_step, current_power + sign, sign*ssc_step):
+                        sign = int(dif / abs(dif))
+                        for cp in range(prev_power + sign * ssc_step, current_power + sign, sign * ssc_step):
                             self._control_change_throttle(cp)
                             sleep(ssc_sleep)
                     # if current_power - prev_power > ssc_step:
@@ -66,7 +66,7 @@ class ContinuousRotationServo:
         if self.p2t:
             self.control.throttle = self.power_to_throttle(power * self.propeller_direction)
         else:
-            self.control.throttle = power/100
+            self.control.throttle = power / 100
 
     def power_to_throttle(self, power):
         if not -100 <= power <= 100:
@@ -185,17 +185,17 @@ class StandardServo:
 
 class RovMovement:
     def __init__(self, xy_lf_pin, xy_rf_pin, xy_lb_pin, xy_rb_pin, z_lf_pin, z_rf_pin, z_lb_pin, z_rb_pin, arm_pin,
-                 initialize_motors=True, sc_control=True):
+                 initialize_motors=True, ssc_control=True):
         with open('p2t.json', 'r') as json_file:
             p2t = json.load(json_file)
-        self.xy_lf = ContinuousRotationServo(xy_lf_pin, sc_control=sc_control, p2t=p2t)
-        self.xy_rf = ContinuousRotationServo(xy_rf_pin, sc_control=sc_control, p2t=p2t)
-        self.xy_lb = ContinuousRotationServo(xy_lb_pin, sc_control=sc_control, p2t=p2t)
-        self.xy_rb = ContinuousRotationServo(xy_rb_pin, sc_control=sc_control, p2t=p2t)
-        self.z_lf = ContinuousRotationServo(z_lf_pin, sc_control=sc_control, p2t=p2t)
-        self.z_rf = ContinuousRotationServo(z_rf_pin, sc_control=sc_control, p2t=p2t)
-        self.z_lb = ContinuousRotationServo(z_lb_pin, sc_control=sc_control, p2t=p2t)
-        self.z_rb = ContinuousRotationServo(z_rb_pin, sc_control=sc_control, p2t=p2t)
+        self.xy_lf = ContinuousRotationServo(xy_lf_pin, ssc_control=ssc_control, p2t=p2t)
+        self.xy_rf = ContinuousRotationServo(xy_rf_pin, ssc_control=ssc_control, p2t=p2t)
+        self.xy_lb = ContinuousRotationServo(xy_lb_pin, ssc_control=ssc_control, p2t=p2t)
+        self.xy_rb = ContinuousRotationServo(xy_rb_pin, ssc_control=ssc_control, p2t=p2t)
+        self.z_lf = ContinuousRotationServo(z_lf_pin, ssc_control=ssc_control, p2t=p2t)
+        self.z_rf = ContinuousRotationServo(z_rf_pin, ssc_control=ssc_control, p2t=p2t)
+        self.z_lb = ContinuousRotationServo(z_lb_pin, ssc_control=ssc_control, p2t=p2t)
+        self.z_rb = ContinuousRotationServo(z_rb_pin, ssc_control=ssc_control, p2t=p2t)
         self.arm = StandardServo(arm_pin)
         self.z_motors_list = [self.z_lf, self.z_rf, self.z_lb, self.z_rb]
         self.xy_motors_list = [self.xy_lf, self.xy_rf, self.xy_lb, self.xy_rb]
@@ -208,10 +208,10 @@ class RovMovement:
 
     def _initialize_motors(self, mp=30):
         print("All motors initializing...")
-        for i in list(range(0, mp)) + list(range(mp, -mp, -1)) + list(range(-mp, 1)):
-            print("Power:", i)
+        for cp in list(range(0, mp)) + list(range(mp, -mp, -1)) + list(range(-mp, 1)):
+            print("Power:", cp)
             for motor in self.all_motors_list:
-                motor.run_bidirectional(i)
+                motor.run_bidirectional(cp)
             sleep(0.01)
         print("All motors initialized...")
 
@@ -335,7 +335,7 @@ if __name__ == '__main__':
     try:
         for i in range(6, 8):
             print("pin:", i)
-            m = ContinuousRotationServo(i)
+            m = ContinuousRotationServo(str(i))
             for j in range(30):
                 print("power:", j)
                 m.run_bidirectional(j)
