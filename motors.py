@@ -72,7 +72,7 @@ class ContinuousRotationServo:
         if not -100 <= power <= 100:
             raise NotInCorrectRange("Power must be between -100 and 100.")
 
-        return self.p2t[power]
+        return self.p2t[str(power)]
 
     def motor_initialize(self):
         self.control = kit.continuous_servo[self.pin]
