@@ -64,9 +64,9 @@ class CSI_Camera:
             self.read_thread = threading.Thread(target=self.read_from_camera)
             self.read_thread.start()
 
-        if self.output:
-            self.output_thread = threading.Thread(target=self.write_to_file)
-            self.output_thread.start()
+            if self.output:
+                self.output_thread = threading.Thread(target=self.write_to_file)
+                self.output_thread.start()
 
         return self
 
@@ -105,10 +105,10 @@ class CSI_Camera:
             self.output_lock.acquire()
             frame_ = self.frame.copy()
             b = time()
-            fps_ = 1 / (b - a)
+            fps2_ = 1 / (b - a)
             cv2.putText(frame_, str(datetime.now()), (5, 15), cv2.FONT_HERSHEY_SIMPLEX, .5, (255, 255, 255), 1,
                         cv2.LINE_AA)
-            cv2.putText(frame_, "FPS: " + str(fps_), (5, 30), cv2.FONT_HERSHEY_SIMPLEX, .5, (255, 255, 255), 1,
+            cv2.putText(frame_, "FPS: " + str(fps2_), (5, 30), cv2.FONT_HERSHEY_SIMPLEX, .5, (255, 255, 255), 1,
                         cv2.LINE_AA)
             a = time()
             self.output.write(frame_)

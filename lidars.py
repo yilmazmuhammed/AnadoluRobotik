@@ -121,16 +121,19 @@ class RovLidars:
         return self
 
     def stop(self):
-        print("RovLidars is shutting down...")
-        self._running=False
-        for key in self._lidars:
-            print(key, "lidar is shutting down...")
-            self._lidars[key].stop()
-            print(key, "lidar is shut down...")
-        self._read_thread.join()
-        if self.output:
-            self.output.close()
-        print("RovLidars is shut down...")
+        if self._running:
+            print("- RovLidars is shutting down...")
+            self._running = False
+            for key in self._lidars:
+                print("-", key, "lidar is shutting down...")
+                self._lidars[key].stop()
+                print("+", key, "lidar is shut down.")
+            self._read_thread.join()
+            if self.output:
+                self.output.close()
+            print("+ RovLidars is shut down.")
+        else:
+            print("? RovLidars is already shut down...")
 
     def _update_values(self):
         values = {}

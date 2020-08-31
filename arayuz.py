@@ -13,11 +13,23 @@ from tkinter import font as tkfont
 from imutils.video import FPS
 
 from csi_camera import CSI_Camera, gstreamer_pipeline
+
+try:
+    from imu import Imu
+except NotImplementedError as e:
+    print("IMU çalıştırılamadı")
+    print("NotImplementedError:", e)
 from joystick import Joystick
 from lidars import RovLidars
-from motors import RovMovement
+
+try:
+    from motors import RovMovement
+except NotImplementedError as e:
+    print("Motorlar çalıştırılamadı")
+    print("NotImplementedError:", e)
 
 arayuz_running = True
+
 
 # TODO arayüz kapanırken rov_movement.stop()
 
@@ -52,10 +64,16 @@ class SampleApp(tk.Tk):
             # will be the one that is visible.
             frame.grid(row=0, column=0, sticky="nsew")
 
-        self.rov_movement = RovMovement(xy_lf_pin="-2", xy_rf_pin="0", xy_lb_pin="-1", xy_rb_pin="6",
-                                        z_lf_pin="-5", z_rf_pin="3", z_lb_pin="-7", z_rb_pin="4", arm_pin=8,
-                                        initialize_motors=True
-                                        )
+        self.rov_movement = None
+        try:
+            self.rov_movement = RovMovement(xy_lf_pin="-7", xy_rf_pin="0", xy_lb_pin="-6", xy_rb_pin="2",
+                                            z_lf_pin="-5", z_rf_pin="4", z_lb_pin="-1", z_rb_pin="3", arm_pin=8,
+                                            initialize_motors=True
+                                            )
+
+        except NameError as e:
+            print("RovMovement başlatılamadı")
+            print("NameError:", e)
 
         self.show_frame("StartPage")
 
@@ -63,7 +81,8 @@ class SampleApp(tk.Tk):
         '''Show a frame for the given page name'''
         frame = self.frames[page_name]
         if mission == 1:
-            self.manuel_thread = Thread(target=update_from_joystick, args=(self.frames["ObservationPage"], self.rov_movement))
+            self.manuel_thread = Thread(target=update_from_joystick,
+                                        args=(self.frames["ObservationPage"], self.rov_movement))
             self.manuel_thread.start()
             pass
         frame.tkraise()
@@ -79,9 +98,8 @@ class SampleApp(tk.Tk):
             print("self.manuel_thread bekleniyor...")
             self.manuel_thread.join()
 
-        print("Motorlar kapatılıyor...")
-        self.rov_movement.stop()
-        print("Motorlar kapatıldı...")
+        if self.rov_movement:
+            self.rov_movement.stop()
         print("Program kapatılıyor...")
         self.after(30, super().destroy)
 
@@ -226,6 +244,9 @@ class ObservationPage(tk.Frame):
         self.joystick_value_label.grid(row=4, column=1, pady=(0, 2))
         tk.Label(components_frame, text="Robotik kol: ").grid(row=5, column=0)
         tk.Label(components_frame, text="Kapalı", width=8, bg='papaya whip').grid(row=5, column=1, pady=(0, 2))
+        tk.Label(components_frame, text="Imu: ").grid(row=6, column=0)
+        self.imu_state_label = tk.Label(components_frame, text="Kapalı", width=8, bg='papaya whip')
+        self.imu_state_label.grid(row=6, column=1, pady=(0, 2))
         components_frame.grid(row=0, column=0, padx=10)
 
         # MOTOR durumları
@@ -255,6 +276,17 @@ class ObservationPage(tk.Frame):
             self.lidar_labels[key] = tk.Label(f, text=str(randint(30, 180)) + 'cm', width=8, bg='papaya whip')
             self.lidar_labels[key].grid(row=1)
             f.grid(row=center_r + r, column=center_c + c, padx=5)
+
+        tk.Label(lidars_frame, text='IMU', font=controller.title_font).grid(row=5, column=0, columnspan=3,
+                                                                            pady=(15, 10))
+        self.imu_labels = {}
+        for key, r, c in [('x', 0, 0), ('y', 0, 1), ('z', 0, 2)]:
+            f = tk.Frame(lidars_frame)
+            tk.Label(f, text=key.capitalize()).grid(row=0)
+            self.imu_labels[key] = tk.Label(f, text='_', width=8, bg='papaya whip')
+            self.imu_labels[key].grid(row=1)
+            f.grid(row=6 + r, column=c, padx=5)
+
         lidars_frame.grid(row=0, column=2, padx=10)
 
         # KAMERALAR
@@ -278,12 +310,27 @@ class ObservationPage(tk.Frame):
             # "right": "/dev/ttyUSB2",
             # "bottom": "/dev/ttyTHS1"
         }
-        self.rov_lidars = RovLidars(ports=ports, output_file="lidars.txt")
-        self.rov_lidars.start()
-        self.update_lidars_values()
+        self.rov_lidars = None
+        if ports:
+            self.rov_lidars = RovLidars(ports=ports, output_file="lidars.txt")
+            self.rov_lidars.start()
+            self.update_lidars_values()
+
+        # IMU
+        self.imu = None
+        try:
+            self.imu = Imu()
+            self.imu.calibrate(5)
+            self.imu.start()
+            self.update_imu_values()
+        except NameError as e:
+            print("IMU başlatılamadı")
+            print("NameError:", e)
 
     def baslat(self):
         self.joystick_value_label["text"] = "Açık"
+        if self.imu:
+            self.imu_state_label["text"] = "Açık"
 
     def update_lidars_values(self):
         values = self.rov_lidars.get_values()
@@ -296,6 +343,14 @@ class ObservationPage(tk.Frame):
             print(e)
             print("\n\n\n\n")
         self.after(50, self.update_lidars_values)
+
+    def update_imu_values(self):
+        x, y, _ = self.imu.get_degree().get()
+        self.imu_labels['x'] = x
+        self.imu_labels['y'] = y
+        _, _, z = self.imu.get_direction(absolute=False).get()
+        self.imu_labels['z'] = z
+        self.after(50, self.update_imu_values)
 
     def update_cameras(self):
         _, left_frame = self.left_camera.read()
@@ -327,39 +382,30 @@ class ObservationPage(tk.Frame):
 
         if not self.left_camera.video_capture.isOpened() or not self.right_camera.video_capture.isOpened():
             # Cameras did not open, or no camera attached
-            raise Exception("Unable to open any cameras")
+            print(Exception("Unable to open any cameras"))
+            return
         self.fps.start()
         self.update_cameras()
 
     def destroy(self):
-        print("Kameralar kapatılıyor...")
-        self.fps.stop()
-        print("[ARAYUZ] elasped time: {:.2f}".format(self.fps.elapsed()))
-        print("[ARAYUZ] approx. FPS: {:.2f}".format(self.fps.fps()))
-        self.left_camera.stop()
-        self.left_camera.release()
-        self.right_camera.stop()
-        self.right_camera.release()
-        print("Kameralar kapatıldı...")
-        self.rov_lidars.stop()
+        if self.left_camera.video_capture.isOpened() or self.right_camera.video_capture.isOpened():
+            print("Kameralar kapatılıyor...")
+            self.fps.stop()
+            print("[ARAYUZ] elasped time: {:.2f}".format(self.fps.elapsed()))
+            print("[ARAYUZ] approx. FPS: {:.2f}".format(self.fps.fps()))
+            self.left_camera.stop()
+            self.left_camera.release()
+            self.right_camera.stop()
+            self.right_camera.release()
+            print("Kameralar kapatıldı...")
+
+        if self.rov_lidars:
+            self.rov_lidars.stop()
+
+        if self.imu:
+            self.imu.stop()
+
         self.after(30, super().destroy)
-
-
-def joystick_control(values):
-    Joy_obj = Joystick()
-    values.update(Joy_obj.shared_obj.ret_dict)
-
-    global arayuz_running
-    while arayuz_running:
-        Joy_obj.while_initializer()
-        if Joy_obj.joystick_count:
-            Joy_obj.for_initializer()
-            Joy_obj.joysticks()
-            values.update(Joy_obj.shared_obj.ret_dict)
-            sleep(0.01)
-        Joy_obj.clock.tick(50)
-
-    Joy_obj.quit()
 
 
 def update_from_joystick(frame, rov_movement):
@@ -385,36 +431,38 @@ def update_from_joystick(frame, rov_movement):
             # print(joystick_values)
             if joystick_values != prev_joystick_values:
                 a = datetime.now()
-                # Z ekseninde hareket
-                z_power = int(joystick_values["z_axes"] * 100)
-                if z_power > 0:
-                    rov_movement.go_up(abs(z_power))
-                else:
-                    rov_movement.go_down(abs(z_power))
 
-                # Robotik kol hareketi
-                arm_status = int(joystick_values["robotik_kol"])
-                if arm_status == -1:
-                    rov_movement.toggle_arm(False)
-                elif arm_status == 1:
-                    rov_movement.toggle_arm(True)
+                if rov_movement:
+                    # Z ekseninde hareket
+                    z_power = int(joystick_values["z_axes"] * 100)
+                    if z_power > 0:
+                        rov_movement.go_up(abs(z_power))
+                    else:
+                        rov_movement.go_down(abs(z_power))
 
-                # XY düzleminde hareket
-                xy_power = joystick_values["xy_plane"]["magnitude"] * 100
-                xy_angle = joystick_values["xy_plane"]["angel"]
-                turn_power = joystick_values["turn_itself"] * 100
-                rov_movement.go_xy_and_turn(xy_power, xy_angle, turn_power)
-                # if not xy_power == 0.0 and not turn_power == 0.0:
-                #     rov_movement.go_xy_and_turn(xy_power, xy_angle, turn_power)
-                # elif not xy_power == 0.0:
-                #     rov_movement.go_xy(xy_power, xy_angle)
-                # elif not turn_power == 0.0:
-                #     if turn_power > 0:
-                #         rov_movement.turn_right(abs(turn_power))
-                #     else:
-                #         rov_movement.turn_left(abs(turn_power))
-                # else:
-                #     rov_movement.go_xy_and_turn(0, 0, 0)
+                    # Robotik kol hareketi
+                    arm_status = int(joystick_values["robotik_kol"])
+                    if arm_status == -1:
+                        rov_movement.toggle_arm(False)
+                    elif arm_status == 1:
+                        rov_movement.toggle_arm(True)
+
+                    # XY düzleminde hareket
+                    xy_power = joystick_values["xy_plane"]["magnitude"] * 100
+                    xy_angle = joystick_values["xy_plane"]["angel"]
+                    turn_power = joystick_values["turn_itself"] * 100
+                    rov_movement.go_xy_and_turn(xy_power, xy_angle, turn_power)
+                    # if not xy_power == 0.0 and not turn_power == 0.0:
+                    #     rov_movement.go_xy_and_turn(xy_power, xy_angle, turn_power)
+                    # elif not xy_power == 0.0:
+                    #     rov_movement.go_xy(xy_power, xy_angle)
+                    # elif not turn_power == 0.0:
+                    #     if turn_power > 0:
+                    #         rov_movement.turn_right(abs(turn_power))
+                    #     else:
+                    #         rov_movement.turn_left(abs(turn_power))
+                    # else:
+                    #     rov_movement.go_xy_and_turn(0, 0, 0)
 
                 prev_joystick_values = copy.deepcopy(joystick_values)
                 print(joystick_values)

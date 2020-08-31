@@ -323,9 +323,11 @@ class RovMovement:
             motor.run_counterclockwise(power)
 
     def stop(self):
+        print("RovMovement is terminating...")
         for motor in self.all_motors_list:
             motor.stop()
         self.arm.stop()
+        print("RovMovement has been terminated.")
 
     def close(self):
         self.stop()
@@ -333,7 +335,7 @@ class RovMovement:
 
 if __name__ == '__main__':
     try:
-        for i in range(6, 8):
+        for i in range(0, 8):
             print("pin:", i)
             m = ContinuousRotationServo(str(i))
             for j in range(30):
@@ -348,6 +350,7 @@ if __name__ == '__main__':
                 print("power:", j)
                 m.run_bidirectional(j)
                 sleep(0.1)
+            m.stop()
             sleep(2)
     except KeyboardInterrupt:
         print("KeyboardInterrupt yakalandı")
