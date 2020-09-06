@@ -135,6 +135,11 @@ class CSI_Camera:
         if self.output_thread:
             self.output_thread.join()
 
+    def is_opened(self):
+        return self.video_capture and self.video_capture.isOpened()
+
+    def is_running(self):
+        return self.running and self.is_opened()
 
 # Currently there are setting frame rate on CSI Camera on Nano through gstreamer
 # Here we directly select sensor_mode 3 (1280x720, 59.9999 fps)

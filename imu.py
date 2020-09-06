@@ -84,6 +84,7 @@ class Imu:
         self._thread = None
 
     def calibrate(self, seconds=1):
+        self.stop()
         seconds_control = time.time()
         seconds_control_count = 0
         sum_degree = XYZ()
@@ -99,6 +100,7 @@ class Imu:
         print("init degree:", self._init_degree)
         print("init gyro", self._init_gyro)
         print("--------------------------------------------------------")
+        self.start()
 
     def start(self):
         if self._running:

@@ -14,11 +14,6 @@ from imutils.video import FPS
 
 from csi_camera import CSI_Camera, gstreamer_pipeline
 
-try:
-    from imu import Imu
-except NotImplementedError as e:
-    print("IMU çalıştırılamadı")
-    print("NotImplementedError:", e)
 from joystick import Joystick
 from lidars import RovLidars
 
@@ -28,10 +23,9 @@ except NotImplementedError as e:
     print("Motorlar çalıştırılamadı")
     print("NotImplementedError:", e)
 
+print("import sonrası")
+
 arayuz_running = True
-
-
-# TODO arayüz kapanırken rov_movement.stop()
 
 
 class SampleApp(tk.Tk):
@@ -53,6 +47,13 @@ class SampleApp(tk.Tk):
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
 
+        self.rov_movement = RovMovement(
+            xy_lf_pin="-1", xy_rf_pin="4", xy_lb_pin="-0", xy_rb_pin="6",
+            z_lf_pin="-3", z_rf_pin="2", z_lb_pin="-5", z_rb_pin="7",
+            arm_pin=8,
+            initialize_motors=False, ssc_control=True
+            )
+
         self.frames = {}
         for F in (StartPage, SelectMissionPage, ObservationPage):
             page_name = F.__name__
@@ -64,21 +65,10 @@ class SampleApp(tk.Tk):
             # will be the one that is visible.
             frame.grid(row=0, column=0, sticky="nsew")
 
-        self.rov_movement = None
-        try:
-            self.rov_movement = RovMovement(xy_lf_pin="-7", xy_rf_pin="0", xy_lb_pin="-6", xy_rb_pin="2",
-                                            z_lf_pin="-5", z_rf_pin="4", z_lb_pin="-1", z_rb_pin="3", arm_pin=8,
-                                            initialize_motors=True
-                                            )
-
-        except NameError as e:
-            print("RovMovement başlatılamadı")
-            print("NameError:", e)
-
         self.show_frame("StartPage")
 
     def show_frame(self, page_name, mission=None):
-        '''Show a frame for the given page name'''
+        """Show a frame for the given page name"""
         frame = self.frames[page_name]
         if mission == 1:
             self.manuel_thread = Thread(target=update_from_joystick,
@@ -88,7 +78,7 @@ class SampleApp(tk.Tk):
         frame.tkraise()
 
     def remove_frame(self, page_name):
-        '''Remove a frame for the given page name'''
+        """Remove a frame for the given page name"""
         self.frames.pop(page_name, None)
 
     def destroy(self):
@@ -139,25 +129,30 @@ class StartPage(tk.Frame):
 
     def is_active_lidars(self):
         print("is_active_lidars")
-        self.control_status_label['text'] = "Lidarlar kontrol ediliyor..."
         if self.count == self.limit:  # TODO control
+            self.control_status_label['text'] = "Motorlar kontrol ediliyor..."
             self.completion_bar_label['text'] += ":::"
             self.count = 0
             self.after(5, self.is_active_motors)
             return
+        self.control_status_label['text'] = "Lidarlar kontrol ediliyor..."
         self.count += 1
         self.after(30, self.is_active_lidars)
 
     def is_active_motors(self):
-        print("is_active_motors")
-        self.control_status_label['text'] = "Motorlar kontrol ediliyor..."
-        if self.count == self.limit:  # TODO control
-            self.completion_bar_label['text'] += ":::"
-            self.count = 0
-            self.after(5, self.controls_completed)
-            return
-        self.count += 1
-        self.after(30, self.is_active_motors)
+        print("Motorlar kontrol ediliyor...")
+        self.controller.rov_movement.initialize_motors()
+        self.control_status_label['text'] = "IMU kalibre ediliyor..."
+        self.completion_bar_label['text'] += ":::"
+        self.after(50, self.is_active_imu)
+
+    def is_active_imu(self):
+        print("IMU kalibre ediliyor...")
+        # LINE 65
+        self.controller.rov_movement._initialize_imu()
+        self.control_status_label['text'] = "Araç hazır..."
+        self.completion_bar_label['text'] += ":::"
+        self.after(50, self.controls_completed)
 
     def controls_completed(self):
         print("controls_completed")
@@ -317,15 +312,8 @@ class ObservationPage(tk.Frame):
             self.update_lidars_values()
 
         # IMU
-        self.imu = None
-        try:
-            self.imu = Imu()
-            self.imu.calibrate(5)
-            self.imu.start()
-            self.update_imu_values()
-        except NameError as e:
-            print("IMU başlatılamadı")
-            print("NameError:", e)
+        self.imu = self.controller.rov_movement.imu
+        self.update_imu_values()
 
     def baslat(self):
         self.joystick_value_label["text"] = "Açık"
@@ -337,10 +325,10 @@ class ObservationPage(tk.Frame):
         try:
             for key in values:
                 self.lidar_labels[key]["text"] = values[key][0]
-        except Exception as e:
+        except Exception as ee:
             print("\n\n\n\n")
             print("Exception in update_lidars_values():")
-            print(e)
+            print(ee)
             print("\n\n\n\n")
         self.after(50, self.update_lidars_values)
 
@@ -350,7 +338,8 @@ class ObservationPage(tk.Frame):
         self.imu_labels['y'] = y
         _, _, z = self.imu.get_direction(absolute=False).get()
         self.imu_labels['z'] = z
-        self.after(50, self.update_imu_values)
+        print("imu:",x,y,z)
+        self.after(200, self.update_imu_values)
 
     def update_cameras(self):
         _, left_frame = self.left_camera.read()
@@ -380,7 +369,7 @@ class ObservationPage(tk.Frame):
             gstreamer_pipeline(sensor_id=1, sensor_mode=3, flip_method=0, display_height=270, display_width=360, ))
         self.right_camera.start()
 
-        if not self.left_camera.video_capture.isOpened() or not self.right_camera.video_capture.isOpened():
+        if not self.left_camera.is_opened() or not self.right_camera.is_opened():
             # Cameras did not open, or no camera attached
             print(Exception("Unable to open any cameras"))
             return
@@ -388,7 +377,7 @@ class ObservationPage(tk.Frame):
         self.update_cameras()
 
     def destroy(self):
-        if self.left_camera.video_capture.isOpened() or self.right_camera.video_capture.isOpened():
+        if self.left_camera.is_running() or self.right_camera.is_running():
             print("Kameralar kapatılıyor...")
             self.fps.stop()
             print("[ARAYUZ] elasped time: {:.2f}".format(self.fps.elapsed()))
@@ -401,9 +390,6 @@ class ObservationPage(tk.Frame):
 
         if self.rov_lidars:
             self.rov_lidars.stop()
-
-        if self.imu:
-            self.imu.stop()
 
         self.after(30, super().destroy)
 
@@ -430,15 +416,10 @@ def update_from_joystick(frame, rov_movement):
 
             # print(joystick_values)
             if joystick_values != prev_joystick_values:
-                a = datetime.now()
-
                 if rov_movement:
                     # Z ekseninde hareket
                     z_power = int(joystick_values["z_axes"] * 100)
-                    if z_power > 0:
-                        rov_movement.go_up(abs(z_power))
-                    else:
-                        rov_movement.go_down(abs(z_power))
+                    rov_movement.go_z_bidirectional(z_power)
 
                     # Robotik kol hareketi
                     arm_status = int(joystick_values["robotik_kol"])
@@ -466,13 +447,17 @@ def update_from_joystick(frame, rov_movement):
 
                 prev_joystick_values = copy.deepcopy(joystick_values)
                 print(joystick_values)
-                # print("Joystick loop süresi:", datetime.now() - a)
             else:
-                sleep(0.01)
+                if rov_movement:
+                    # Z ekseninde hareket - Denge için
+                    z_power = int(joystick_values["z_axes"] * 100)
+                    rov_movement.go_z_bidirectional(z_power)
+                sleep(0.05)
         sleep(0.04)
         Joy_obj.clock.tick(50)
 
 
 if __name__ == "__main__":
+    print("__main__")
     app = SampleApp()
     app.mainloop()

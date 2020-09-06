@@ -4,10 +4,16 @@ from threading import Thread, Lock
 from time import sleep
 from adafruit_servokit import ServoKit
 
+from imu import Imu
+
 kit = ServoKit(channels=16)
 
 
 class NotInCorrectRange(Exception):
+    pass
+
+
+class NotCorrectType(Exception):
     pass
 
 
@@ -78,12 +84,17 @@ class ContinuousRotationServo:
         self.control = kit.continuous_servo[self.pin]
         self.control.set_pulse_width_range(self.min_freq, self.max_freq)
 
-    def _change_power(self, power):
+    def _change_power(self, power, range_control=True, type_control=True):
         """
         :param power: this parameter takes a value between -100 and 100. Negative values​make it work backward,
                       positive values​make it work forward.
         :return:
         """
+        if range_control and not -100 <= power <= 100:
+            raise NotInCorrectRange("Power must be between -100 and 100 in run_bidirectional function. Power:", power)
+        if type_control and not isinstance(power, int):
+            raise NotCorrectType("Power must be integer. Power:", power)
+
         if power != self.power:
             self.power = power
             if self.lock.locked():
@@ -96,7 +107,7 @@ class ContinuousRotationServo:
         :return:
         """
         if not 0 <= power <= 100:
-            raise NotInCorrectRange("Power must be between 0 and 100.")
+            raise NotInCorrectRange("Power must be between 0 and 100. Power:", power)
         return self._change_power(power)
 
     def run_counterclockwise(self, power):
@@ -106,10 +117,13 @@ class ContinuousRotationServo:
         :return:
         """
         if not 0 <= power <= 100:
-            raise NotInCorrectRange("Power must be between 0 and 100.")
+            raise NotInCorrectRange("Power must be between 0 and 100. Power:", power)
         return self._change_power(-power)
 
     def run_bidirectional(self, power):
+        if not -100 <= power <= 100:
+            raise NotInCorrectRange("Power must be between -100 and 100 in run_bidirectional function. Power:", power)
+
         if power >= 0:
             self.run_clockwise(power)
         else:
@@ -183,6 +197,12 @@ class StandardServo:
             print(self.pin, "motor is already shut down...")
 
 
+def sign_n(num):
+    if num == 0:
+        return 1
+    return num / abs(num)
+
+
 class RovMovement:
     def __init__(self, xy_lf_pin, xy_rf_pin, xy_lb_pin, xy_rb_pin, z_lf_pin, z_rf_pin, z_lb_pin, z_rb_pin, arm_pin,
                  initialize_motors=True, ssc_control=True):
@@ -197,16 +217,20 @@ class RovMovement:
         self.z_lb = ContinuousRotationServo(z_lb_pin, ssc_control=ssc_control, p2t=p2t)
         self.z_rb = ContinuousRotationServo(z_rb_pin, ssc_control=ssc_control, p2t=p2t)
         self.arm = StandardServo(arm_pin)
+        self.imu = Imu()
         self.z_motors_list = [self.z_lf, self.z_rf, self.z_lb, self.z_rb]
         self.xy_motors_list = [self.xy_lf, self.xy_rf, self.xy_lb, self.xy_rb]
         self.all_motors_list = self.z_motors_list + self.xy_motors_list
         self.arm_status = False
         self.open_arm()
+
+        self.imu.start()
         if initialize_motors:
-            self._initialize_motors()
+            self.initialize_motors()
+            self._initialize_imu()
         sleep(2)
 
-    def _initialize_motors(self, mp=30):
+    def initialize_motors(self, mp=30):
         print("All motors initializing...")
         for cp in list(range(0, mp)) + list(range(mp, -mp, -1)) + list(range(-mp, 1)):
             print("Power:", cp)
@@ -214,6 +238,33 @@ class RovMovement:
                 motor.run_bidirectional(cp)
             sleep(0.01)
         print("All motors initialized...")
+
+    def _initialize_imu(self, seconds=5):
+        print("IMU is being calibrated...")
+        self.imu.calibrate(seconds)
+        print("IMU is calibrated...")
+
+    def _get_z_balance_p(self, kp=1.0, type_=int):
+        try:
+            x, y, _ = self.imu.get_degree().get()
+            comp_sign = +1 if (x < 0 and y < 0) or (x > 0 and y > 0) else -1
+            lf_p = sign_n(-y - x) * math.sqrt(abs(-y * -y + comp_sign * -x * -x))  # -y - x
+            rf_p = sign_n(-y + x) * math.sqrt(abs(-y * -y - comp_sign * +x * +x))  # -y + x
+            lb_p = sign_n(+y - x) * math.sqrt(abs(+y * +y - comp_sign * -x * -x))  # +y - x
+            rb_p = sign_n(+y + x) * math.sqrt(abs(+y * +y + comp_sign * +x * +x))  # +y + x
+            return type_(lf_p * kp), type_(rf_p * kp), type_(lb_p * kp), type_(rb_p * kp)
+        except Exception as e:
+            print("Exception in _get_balance_p:", e)
+            return 0, 0, 0, 0
+
+    def go_z_bidirectional(self, power, with_balance=True):
+        power_per_motor = int(power / 4)
+
+        lf_p, rf_p, lb_p, rb_p = self._get_z_balance_p(kp=1 / 9) if with_balance else 0, 0, 0, 0
+        self.z_lf.run_bidirectional(power_per_motor + int(lf_p))
+        self.z_rf.run_bidirectional(power_per_motor + int(rf_p))
+        self.z_lb.run_bidirectional(power_per_motor + int(lb_p))
+        self.z_rb.run_bidirectional(power_per_motor + int(rb_p))
 
     def go_up(self, power):
         power_per_motor = int(power / 4)
@@ -301,11 +352,11 @@ class RovMovement:
         self.xy_rb.run_bidirectional(pow_rb)
 
     def open_arm(self):
-        self.arm.change_angle(180)
+        self.arm.change_angle(100)
         self.arm_status = True
 
     def close_arm(self):
-        self.arm.change_angle(0)
+        self.arm.change_angle(30)
         self.arm_status = False
 
     def toggle_arm(self, arm_status=None):
@@ -327,6 +378,7 @@ class RovMovement:
         for motor in self.all_motors_list:
             motor.stop()
         self.arm.stop()
+        self.imu.stop()
         print("RovMovement has been terminated.")
 
     def close(self):
