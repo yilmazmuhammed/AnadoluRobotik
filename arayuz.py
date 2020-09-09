@@ -71,8 +71,8 @@ class SampleApp(tk.Tk):
         """Show a frame for the given page name"""
         frame = self.frames[page_name]
         if mission == 1:
-            self.manuel_thread = Thread(target=update_from_joystick,
-                                        args=(self.frames["ObservationPage"], self.rov_movement))
+            self.manuel_thread = Thread(target=update_from_joystick, args=(self.rov_movement))
+            self.frames["ObservationPage"].baslat()
             self.manuel_thread.start()
             pass
         frame.tkraise()
@@ -394,10 +394,8 @@ class ObservationPage(tk.Frame):
         self.after(30, super().destroy)
 
 
-def update_from_joystick(frame, rov_movement):
+def update_from_joystick(rov_movement):
     print("Thrade oluşturuldu")
-
-    frame.baslat()
 
     # Joystick variables are creating
     joystick_values = {}
@@ -461,3 +459,11 @@ if __name__ == "__main__":
     print("__main__")
     app = SampleApp()
     app.mainloop()
+
+    # rm = RovMovement(
+    #         xy_lf_pin="-1", xy_rf_pin="4", xy_lb_pin="-0", xy_rb_pin="6",
+    #         z_lf_pin="-3", z_rf_pin="2", z_lb_pin="-5", z_rb_pin="7",
+    #         arm_pin=8,
+    #         initialize_motors=False, ssc_control=True
+    #         )
+    # update_from_joystick(rm)
