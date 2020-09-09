@@ -2,6 +2,8 @@ import json
 import math
 from threading import Thread, Lock
 from time import sleep
+
+import numpy as np
 from adafruit_servokit import ServoKit
 
 from imu import Imu
@@ -224,6 +226,9 @@ class RovMovement:
         self.arm_status = False
         self.open_arm()
 
+        # PID
+        self.old_err = np.zeros((2, 2))
+
         self.imu.start()
         if initialize_motors:
             self.initialize_motors()
@@ -244,15 +249,27 @@ class RovMovement:
         self.imu.calibrate(seconds)
         print("IMU is calibrated...")
 
-    def _get_z_balance_p(self, kp=1.0, type_=int):
+    def _get_z_balance_p(self, kp=0.0, kd=0.0, type_=int):
+        # if not kp > kd:
+        #     raise Exception("Kp must be bigger than Kd. Kp: %s - Kd: %s" % (kp, kd))
         try:
             x, y, _ = self.imu.get_degree().get()
             comp_sign = +1 if (x < 0 and y < 0) or (x > 0 and y > 0) else -1
-            lf_p = sign_n(-y - x) * math.sqrt(abs(-y * -y + comp_sign * -x * -x))  # -y - x
-            rf_p = sign_n(-y + x) * math.sqrt(abs(-y * -y - comp_sign * +x * +x))  # -y + x
-            lb_p = sign_n(+y - x) * math.sqrt(abs(+y * +y - comp_sign * -x * -x))  # +y - x
-            rb_p = sign_n(+y + x) * math.sqrt(abs(+y * +y + comp_sign * +x * +x))  # +y + x
-            return type_(lf_p * kp), type_(rf_p * kp), type_(lb_p * kp), type_(rb_p * kp)
+
+            lf = sign_n(-y - x) * math.sqrt(abs(-y * -y + comp_sign * -x * -x))  # -y - x
+            rf = sign_n(-y + x) * math.sqrt(abs(-y * -y - comp_sign * +x * +x))  # -y + x
+            lb = sign_n(+y - x) * math.sqrt(abs(+y * +y - comp_sign * -x * -x))  # +y - x
+            rb = sign_n(+y + x) * math.sqrt(abs(+y * +y + comp_sign * +x * +x))  # +y + x
+            err = np.array([
+                [lf, rf],
+                [lb, rb]
+            ])
+
+            ret = kp * err + kd * (err - self.old_err)
+            self.old_err = err
+            if type_ == int:
+                ret = np.rint(ret)
+            return ret.ravel()
         except Exception as e:
             print("Exception in _get_balance_p:", e)
             return 0, 0, 0, 0
@@ -260,7 +277,7 @@ class RovMovement:
     def go_z_bidirectional(self, power, with_balance=True):
         power_per_motor = int(power / 4)
 
-        lf_p, rf_p, lb_p, rb_p = self._get_z_balance_p(kp=1 / 9) if with_balance else 0, 0, 0, 0
+        lf_p, rf_p, lb_p, rb_p = self._get_z_balance_p(kp=0.3, kd=0.15) if with_balance else (0, 0, 0, 0)
         self.z_lf.run_bidirectional(power_per_motor + int(lf_p))
         self.z_rf.run_bidirectional(power_per_motor + int(rf_p))
         self.z_lb.run_bidirectional(power_per_motor + int(lb_p))
