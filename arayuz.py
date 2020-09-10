@@ -431,17 +431,6 @@ def update_from_joystick(rov_movement):
                     xy_angle = joystick_values["xy_plane"]["angel"]
                     turn_power = joystick_values["turn_itself"] * 100
                     rov_movement.go_xy_and_turn(xy_power, xy_angle, turn_power)
-                    # if not xy_power == 0.0 and not turn_power == 0.0:
-                    #     rov_movement.go_xy_and_turn(xy_power, xy_angle, turn_power)
-                    # elif not xy_power == 0.0:
-                    #     rov_movement.go_xy(xy_power, xy_angle)
-                    # elif not turn_power == 0.0:
-                    #     if turn_power > 0:
-                    #         rov_movement.turn_right(abs(turn_power))
-                    #     else:
-                    #         rov_movement.turn_left(abs(turn_power))
-                    # else:
-                    #     rov_movement.go_xy_and_turn(0, 0, 0)
 
                 prev_joystick_values = copy.deepcopy(joystick_values)
                 print(joystick_values)
@@ -459,16 +448,3 @@ if __name__ == "__main__":
     print("__main__")
     app = SampleApp()
     app.mainloop()
-
-    rm = RovMovement(
-            xy_lf_pin="-1", xy_rf_pin="4", xy_lb_pin="-0", xy_rb_pin="6",
-            z_lf_pin="-3", z_rf_pin="2", z_lb_pin="-5", z_rb_pin="7",
-            arm_pin=8,
-            initialize_motors=False, ssc_control=True
-            )
-    try:
-        update_from_joystick(rm)
-    except KeyboardInterrupt:
-        print("Keyboard interupt...")
-    finally:
-        rm.stop()

@@ -38,9 +38,6 @@ class ContinuousRotationServo:
         self.thread.start()
 
     def motor_thread(self):
-        # Sudden speed change control
-        ssc_sleep = 0.01
-        ssc_step = 5
         prev_power = 0
         while self.running:
             self.lock.acquire()
@@ -49,26 +46,18 @@ class ContinuousRotationServo:
                 continue
             else:
                 if self.ssc_control:
-                    dif = current_power - prev_power
-                    if abs(dif) > ssc_step:
-                        sign = int(dif / abs(dif))
-                        for cp in range(prev_power + sign * ssc_step, current_power + sign, sign * ssc_step):
-                            self._control_change_throttle(cp)
-                            sleep(ssc_sleep)
-                    # if current_power - prev_power > ssc_step:
-                    #     for i in range(prev_power + 1, current_power + 1, ssc_step):
-                    #         self._control_change_throttle(i)
-                    #         # self.control.throttle = i / 100
-                    #         sleep(ssc_sleep)
-                    # elif prev_power - current_power > ssc_step:
-                    #     for i in range(prev_power - 1, current_power - 1, -ssc_step):
-                    #         self._control_change_throttle(i)
-                    #         # self.control.throttle = i / 100
-                    #         sleep(ssc_sleep)
+                    self._gradual_speed_change(current_power, prev_power)
                 self._control_change_throttle(current_power)
-                # self.control.throttle = self.power_to_throttle(current_power * self.propeller_direction)
                 prev_power = current_power
         self._control_change_throttle(0)
+
+    def _gradual_speed_change(self, current_power, prev_power, ssc_step=5, ssc_sleep=0.01):
+        dif = current_power - prev_power
+        if abs(dif) > ssc_step:
+            sign = int(dif / abs(dif))
+            for cp in range(prev_power + sign * ssc_step, current_power + sign, sign * ssc_step):
+                self._control_change_throttle(cp)
+                sleep(ssc_sleep)
 
     def _control_change_throttle(self, power):
         if self.p2t:
@@ -255,6 +244,8 @@ class RovMovement:
         try:
             x, y, _ = self.imu.get_degree().get()
             comp_sign = +1 if (x < 0 and y < 0) or (x > 0 and y > 0) else -1
+            if -1 < x < 1: x = 0
+            if -1 < y < 1: y = 0
 
             lf = sign_n(-y - x) * math.sqrt(abs(-y * -y + comp_sign * -x * -x))  # -y - x
             rf = sign_n(-y + x) * math.sqrt(abs(-y * -y - comp_sign * +x * +x))  # -y + x
