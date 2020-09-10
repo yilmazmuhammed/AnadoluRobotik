@@ -107,6 +107,7 @@ class ContinuousRotationServo:
             print(self.pin, "motor kapatılıyor...")
             self.running = False
             self.power = 0
+            self._control_change_throttle(self.power)
             print(self.pin, "motor kapatıldı...")
 
 
