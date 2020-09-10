@@ -20,18 +20,36 @@ class NotCorrectType(Exception):
 
 
 class ContinuousRotationServo:
-    def __init__(self, pin, min_freq=1135, max_freq=1935, p2t=None):
+    def __init__(self, pin, min_freq=1135, max_freq=1935, ssc_control=True, p2t=None):
         self.control = None
         self.pin = abs(int(pin))
         self.propeller_direction = -1 if pin[0] == "-" else 1
         self.min_freq = min_freq
         self.max_freq = max_freq
+        self.ssc_control = ssc_control
         self.p2t = p2t
 
         self.motor_initialize()
 
         self.running = True
         self.power = 0
+        self.lock = Lock()
+        self.thread = Thread(target=self.motor_thread)
+        self.thread.start()
+
+    def motor_thread(self):
+        prev_power = 0
+        while self.running:
+            self.lock.acquire()
+            current_power = self.power
+            if prev_power == current_power:
+                continue
+            else:
+                if self.ssc_control:
+                    self._gradual_speed_change(current_power, prev_power)
+                self._control_change_throttle(current_power)
+                prev_power = current_power
+        self._control_change_throttle(0)
 
     def _gradual_speed_change(self, current_power, prev_power, ssc_step=5, ssc_sleep=0.01):
         dif = current_power - prev_power
@@ -70,7 +88,8 @@ class ContinuousRotationServo:
 
         if power != self.power:
             self.power = power
-            self._control_change_throttle(self.power)
+            if self.lock.locked():
+                self.lock.release()
 
     def run_clockwise(self, power):
         """
@@ -107,6 +126,9 @@ class ContinuousRotationServo:
             print(self.pin, "motor kapatılıyor...")
             self.running = False
             self.power = 0
+            if self.lock.locked():
+                self.lock.release()
+            self.thread.join()
             print(self.pin, "motor kapatıldı...")
 
 
@@ -177,45 +199,36 @@ class RovMovement:
                  initialize_motors=True, ssc_control=True):
         with open('p2t.json', 'r') as json_file:
             p2t = json.load(json_file)
-        self.ssc_control = ssc_control
-
-        self.motors = {
-            "xy_lf": ContinuousRotationServo(xy_lf_pin, p2t=p2t),
-            "xy_rf": ContinuousRotationServo(xy_rf_pin, p2t=p2t),
-            "xy_lb": ContinuousRotationServo(xy_lb_pin, p2t=p2t),
-            "xy_rb": ContinuousRotationServo(xy_rb_pin, p2t=p2t),
-            "z_lf": ContinuousRotationServo(z_lf_pin, p2t=p2t),
-            "z_rf": ContinuousRotationServo(z_rf_pin, p2t=p2t),
-            "z_lb": ContinuousRotationServo(z_lb_pin, p2t=p2t),
-            "z_rb": ContinuousRotationServo(z_rb_pin, p2t=p2t)
-        }
-        self.motor_prev_powers = {
-            "xy_lf": 0, "xy_rf": 0, "xy_lb": 0, "xy_rb": 0,
-            "z_lf": 0, "z_rf": 0, "z_lb": 0, "z_rb": 0
-        }
-
+        self.xy_lf = ContinuousRotationServo(xy_lf_pin, ssc_control=ssc_control, p2t=p2t)
+        self.xy_rf = ContinuousRotationServo(xy_rf_pin, ssc_control=ssc_control, p2t=p2t)
+        self.xy_lb = ContinuousRotationServo(xy_lb_pin, ssc_control=ssc_control, p2t=p2t)
+        self.xy_rb = ContinuousRotationServo(xy_rb_pin, ssc_control=ssc_control, p2t=p2t)
+        self.z_lf = ContinuousRotationServo(z_lf_pin, ssc_control=ssc_control, p2t=p2t)
+        self.z_rf = ContinuousRotationServo(z_rf_pin, ssc_control=ssc_control, p2t=p2t)
+        self.z_lb = ContinuousRotationServo(z_lb_pin, ssc_control=ssc_control, p2t=p2t)
+        self.z_rb = ContinuousRotationServo(z_rb_pin, ssc_control=ssc_control, p2t=p2t)
         self.arm = StandardServo(arm_pin)
+        self.imu = Imu()
+        self.z_motors_list = [self.z_lf, self.z_rf, self.z_lb, self.z_rb]
+        self.xy_motors_list = [self.xy_lf, self.xy_rf, self.xy_lb, self.xy_rb]
+        self.all_motors_list = self.z_motors_list + self.xy_motors_list
         self.arm_status = False
         self.open_arm()
 
         # PID
         self.old_err = np.zeros((2, 2))
-        self.imu = Imu()
-        self.imu.start()
 
+        self.imu.start()
         if initialize_motors:
             self.initialize_motors()
             self._initialize_imu()
         sleep(2)
 
-    def select_motors(self, search_list):
-        return {key: value for (key, value) in self.motors.items() if not any(s not in key for s in search_list)}
-
     def initialize_motors(self, mp=30):
         print("All motors initializing...")
         for cp in list(range(0, mp)) + list(range(mp, -mp, -1)) + list(range(-mp, 1)):
             print("Power:", cp)
-            for motor in self.motors.values():
+            for motor in self.all_motors_list:
                 motor.run_bidirectional(cp)
             sleep(0.01)
         print("All motors initialized...")
@@ -252,41 +265,67 @@ class RovMovement:
             print("Exception in _get_balance_p:", e)
             return 0, 0, 0, 0
 
-    def _gradual_power_change(self, current_powers, ssc_control=True, ssc_step=5, ssc_sleep=0.01):
-        start_powers = self.motor_prev_powers
-        stop_powers = current_powers
-        motor_keys = stop_powers.keys()
-
-        diff = [abs(stop_powers[key] - start_powers[key]) for key in motor_keys]
-        steps = int(max(diff) / ssc_step)
-        power_list = {key: np.linspace(start_powers[key], stop_powers[key], steps, endpoint=False, dtype=int) for key in
-                      motor_keys}
-
-        if steps and ssc_control:
-            for k in range(1, steps):
-                for key in motor_keys:
-                    self.motors[key].run_bidirectional(int(power_list[key][k]))
-                    print(str(key) + ":", power_list[key][k], end="\t")
-                print()
-                sleep(ssc_sleep)
-
-        for key in motor_keys:
-            self.motors[key].run_bidirectional(int(stop_powers[key]))
-            print(str(key) + ":", stop_powers[key], end="\t")
-        print()
-
     def go_z_bidirectional(self, power, with_balance=True):
         power_per_motor = int(power / 4)
 
         lf_p, rf_p, lb_p, rb_p = self._get_z_balance_p(kp=0.3, kd=0.15) if with_balance else (0, 0, 0, 0)
-        current_powers = {
-            "z_lf": power_per_motor + lf_p,
-            "z_rf": power_per_motor + rf_p,
-            "z_lb": power_per_motor + lb_p,
-            "z_rb": power_per_motor + rb_p
-        }
-        self._gradual_power_change(current_powers, ssc_control=self.ssc_control)
-        self.motor_prev_powers.update(current_powers)
+        self.z_lf.run_bidirectional(power_per_motor + int(lf_p))
+        self.z_rf.run_bidirectional(power_per_motor + int(rf_p))
+        self.z_lb.run_bidirectional(power_per_motor + int(lb_p))
+        self.z_rb.run_bidirectional(power_per_motor + int(rb_p))
+
+    def go_up(self, power):
+        power_per_motor = int(power / 4)
+        for motor in self.z_motors_list:
+            motor.run_clockwise(power_per_motor)
+
+    def go_down(self, power):
+        power_per_motor = int(power / 4)
+        for motor in self.z_motors_list:
+            motor.run_counterclockwise(power_per_motor)
+
+    def turn_left(self, power):
+        power = power / 4
+        power_per_motor = int(power / 4)
+        self.xy_rf.run_clockwise(power_per_motor)
+        self.xy_lf.run_counterclockwise(power_per_motor)
+        self.xy_lb.run_clockwise(power_per_motor)
+        self.xy_rb.run_counterclockwise(power_per_motor)
+
+    def turn_right(self, power):
+        power = power / 4
+        power_per_motor = int(power / 4)
+        self.xy_rf.run_counterclockwise(power_per_motor)
+        self.xy_lf.run_clockwise(power_per_motor)
+        self.xy_lb.run_counterclockwise(power_per_motor)
+        self.xy_rb.run_clockwise(power_per_motor)
+
+    def go_xy(self, power, degree):
+        """
+        :param power: Power sent to the vehicle's movement
+        :param degree: degree of movement (0between 0-360 degree)
+                       0 -> ileri
+                       90 -> sağa
+                       180 -> geri
+                       270 -> sola
+        :return:
+        """
+        power_per_motor = int(power / 2)
+
+        radian_rf = (45 - degree) / 180 * math.pi
+        radian_lf = (135 - degree) / 180 * math.pi
+        radian_lb = (225 - degree) / 180 * math.pi
+        radian_rb = (315 - degree) / 180 * math.pi
+
+        pow_rf = int(math.sin(radian_rf) * power_per_motor)
+        pow_lf = int(math.sin(radian_lf) * power_per_motor)
+        pow_lb = int(math.sin(radian_lb) * power_per_motor)
+        pow_rb = int(math.sin(radian_rb) * power_per_motor)
+
+        self.xy_rf.run_bidirectional(pow_rf)
+        self.xy_lf.run_bidirectional(pow_lf)
+        self.xy_lb.run_bidirectional(pow_lb)
+        self.xy_rb.run_bidirectional(pow_rb)
 
     def go_xy_and_turn(self, power, degree, turn_power):
         """
@@ -315,14 +354,10 @@ class RovMovement:
         pow_lb = int(math.sin(radian_lb) * go_power_per_motor - turn_power_per_motor)
         pow_rb = int(math.sin(radian_rb) * go_power_per_motor + turn_power_per_motor)
 
-        current_powers = {
-            "xy_lf": pow_lf,
-            "xy_rf": pow_rf,
-            "xy_lb": pow_lb,
-            "xy_rb": pow_rb
-        }
-        self._gradual_power_change(current_powers)
-        self.motor_prev_powers.update(current_powers)
+        self.xy_rf.run_bidirectional(pow_rf)
+        self.xy_lf.run_bidirectional(pow_lf)
+        self.xy_lb.run_bidirectional(pow_lb)
+        self.xy_rb.run_bidirectional(pow_rb)
 
     def open_arm(self):
         self.arm.change_angle(100)
@@ -339,16 +374,16 @@ class RovMovement:
             self.open_arm()
 
     def run_all_motors_cw(self, power):
-        for motor in self.motors.values():
+        for motor in self.all_motors_list:
             motor.run_clockwise(power)
 
     def run_all_motors_ccw(self, power):
-        for motor in self.motors.values():
+        for motor in self.all_motors_list:
             motor.run_counterclockwise(power)
 
     def stop(self):
         print("RovMovement is terminating...")
-        for motor in self.motors.values():
+        for motor in self.all_motors_list:
             motor.stop()
         self.arm.stop()
         self.imu.stop()
