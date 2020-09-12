@@ -4,6 +4,7 @@ from time import sleep
 from joystick import Joystick
 from motors import RovMovement
 
+arayuz_running=True
 
 def update_from_joystick(rov_movement):
     print("Thrade oluşturuldu")
@@ -61,7 +62,7 @@ if __name__ == "__main__":
             xy_lf_pin="-1", xy_rf_pin="4", xy_lb_pin="-0", xy_rb_pin="6",
             z_lf_pin="-3", z_rf_pin="2", z_lb_pin="-5", z_rb_pin="7",
             arm_pin=8,
-            initialize_motors=False, ssc_control=True
+            initialize_motors=True, ssc_control=True
             )
     try:
         update_from_joystick(rm)

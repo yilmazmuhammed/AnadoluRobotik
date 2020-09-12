@@ -279,7 +279,7 @@ class RovMovement:
     def go_z_bidirectional(self, power, with_balance=True):
         power_per_motor = int(power / 4)
 
-        lf_p, rf_p, lb_p, rb_p = self._get_z_balance_p(kp=0.3, kd=0.15) if with_balance else (0, 0, 0, 0)
+        lf_p, rf_p, lb_p, rb_p = self._get_z_balance_p(kp=0.35, kd=0.30) if with_balance else (0, 0, 0, 0)
         current_powers = {
             "z_lf": power_per_motor + lf_p,
             "z_rf": power_per_motor + rf_p,
