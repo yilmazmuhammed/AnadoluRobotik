@@ -57,6 +57,7 @@ if __name__ == '__main__':
     pathlib.Path(write_labels_directory).mkdir(parents=True, exist_ok=True)
     os.chdir(read_photos_directory)
     photos = glob.glob('*.' + photo_extension)
+    photos.sort()
 
     try:
         from progressbar import ProgressBar
