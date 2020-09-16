@@ -42,15 +42,15 @@ if __name__ == '__main__':
     new_area = ((40, -3), (65, -90))
     old_size = (480, 720)
 
-    # photo_extension = "jpg"
-    photo_extension = input("Extension of photos:")
+    photo_extension = "jpg"
     # read_photos_directory = os.path.abspath("img/circle")
-    read_photos_directory = os.path.abspath(input("Directory to read photos:"))
     # read_labels_directory = os.path.abspath("img/circle")
-    read_labels_directory = os.path.abspath(input("Directory to read labels:"))
     # write_photos_directory = os.path.abspath("img/circle_crop")
-    write_photos_directory = os.path.abspath(input("The directory to save photos:"))
     # write_labels_directory = os.path.abspath("img/circle_crop/Label")
+    # photo_extension = input("Extension of photos:")
+    read_photos_directory = os.path.abspath(input("Directory to read photos:"))
+    read_labels_directory = os.path.abspath(input("Directory to read labels:"))
+    write_photos_directory = os.path.abspath(input("The directory to save photos:"))
     write_labels_directory = os.path.abspath(input("The directory to save labels:"))
 
     pathlib.Path(write_photos_directory).mkdir(parents=True, exist_ok=True)
@@ -75,10 +75,14 @@ if __name__ == '__main__':
         if len(coordinates):
             coordinates = coordinates.split(" ")
             new_values = [str(round(i, 6)) for i in
-                          [0] + crop_label([float(i) for i in coordinates[1:]], new_area, old_size)]
+                          crop_label([float(i) for i in coordinates[1:]], new_area, old_size)]
+            new_values = coordinates[0] + new_values
         else:
             new_values = [""]
-        open(write_labels_directory + "/" + txt_name, "w").write(" ".join(new_values))
+
+        wf = open(write_labels_directory + "/" + txt_name, "w")
+        wf.write(" ".join(new_values))
+        wf.close()
 
         try: bar.update(bar.value+1)
         except: pass
