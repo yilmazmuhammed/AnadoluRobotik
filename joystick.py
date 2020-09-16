@@ -10,11 +10,17 @@ from threading import Thread
 class SharedOutput():
 
     def __init__(self):
-        self.ret_dict = {"xy_plane": {"angel": 0,  # jotstick çubuğunun ileri geri ve sağa sola ittirilmesi
-                                      "magnitude": 0},
-                         "z_axes": 0,  # 5 ve 3 numaralı butonlara basılması durumu
-                         "turn_itself": 0,
-                         "robotik_kol": 0}  # joystick çubuğunun kendi eksininde döndürülmesi hareketi
+        self.ret_dict = {
+            "xy_plane": {
+                "angel": 0,  # jotstick çubuğunun ileri geri ve sağa sola ittirilmesi
+                "magnitude": 0
+            },
+            "z_axes": 0,  # 5 ve 3 numaralı butonlara basılması durumu
+            "turn_itself": 0,
+            "robotik_kol": 0,  # joystick çubuğunun kendi eksininde döndürülmesi hareketi
+            "asagi_bak": 0,
+            "dik_dur": 0
+        }
         self.x = 0
         self.y = 0
         self.k = 1
@@ -110,6 +116,8 @@ class Joystick:
         self.axes = self.joystick.get_numaxes()
 
         self.get_z_values()
+        self.get_look_down()
+        self.get_stand_upright()
 
     def while_initializer(self):
 
@@ -130,6 +138,12 @@ class Joystick:
     def get_z_values(self):
         # self.shared_obj.update_z(round(pygame.joystick.Joystick(0).get_axis(3), 2))
         self.shared_obj.update_z(pygame.joystick.Joystick(0).get_hat(0)[1])
+
+    def get_look_down(self):
+        self.shared_obj.ret_dict["asagi_bak"] = pygame.joystick.Joystick(0).get_button(10)
+
+    def get_stand_upright(self):
+        self.shared_obj.ret_dict["dik_dur"] = pygame.joystick.Joystick(0).get_button(11)
 
     def joysticks(self):
         joystick = pygame.joystick.Joystick(0)

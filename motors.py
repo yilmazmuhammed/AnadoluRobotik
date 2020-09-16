@@ -226,11 +226,12 @@ class RovMovement:
         self.imu.calibrate(seconds)
         print("IMU is calibrated...")
 
-    def _get_z_balance_p(self, kp=0.0, kd=0.0, type_=int):
+    def _get_z_balance_p(self, kp=0.0, kd=0.0, type_=int, target_x=0):
         # if not kp > kd:
         #     raise Exception("Kp must be bigger than Kd. Kp: %s - Kd: %s" % (kp, kd))
         try:
             x, y, _ = self.imu.get_degree().get()
+            y = y - target_x
             comp_sign = +1 if (x < 0 and y < 0) or (x > 0 and y > 0) else -1
             if -1 < x < 1: x = 0
             if -1 < y < 1: y = 0
@@ -276,10 +277,10 @@ class RovMovement:
             print(str(key) + ":", stop_powers[key], end="\t")
         print()
 
-    def go_z_bidirectional(self, power, with_balance=True):
+    def go_z_bidirectional(self, power, with_balance=True, target_x=0):
         power_per_motor = int(power / 4)
 
-        lf_p, rf_p, lb_p, rb_p = self._get_z_balance_p(kp=0.35, kd=0.30) if with_balance else (0, 0, 0, 0)
+        lf_p, rf_p, lb_p, rb_p = self._get_z_balance_p(kp=0.35, kd=0.30, target_x=target_x) if with_balance else (0, 0, 0, 0)
         current_powers = {
             "z_lf": power_per_motor + lf_p,
             "z_rf": power_per_motor + rf_p,

@@ -52,7 +52,7 @@ class SampleApp(tk.Tk):
             z_lf_pin="-3", z_rf_pin="2", z_lb_pin="-5", z_rb_pin="7",
             arm_pin=8,
             initialize_motors=False, ssc_control=True
-            )
+        )
 
         self.frames = {}
         for F in (StartPage, SelectMissionPage, ObservationPage):
@@ -338,7 +338,7 @@ class ObservationPage(tk.Frame):
         self.imu_labels['y'] = y
         _, _, z = self.imu.get_direction(absolute=False).get()
         self.imu_labels['z'] = z
-        print("imu:",x,y,z)
+        print("imu:", x, y, z)
         self.after(200, self.update_imu_values)
 
     def update_cameras(self):
@@ -414,11 +414,10 @@ def update_from_joystick(rov_movement):
 
             # print(joystick_values)
             if joystick_values != prev_joystick_values:
-                if rov_movement:
-                    # Z ekseninde hareket
-                    z_power = int(joystick_values["z_axes"] * 100)
-                    rov_movement.go_z_bidirectional(z_power)
+                prev_joystick_values = copy.deepcopy(joystick_values)
+                print(joystick_values)
 
+                if rov_movement:
                     # Robotik kol hareketi
                     arm_status = int(joystick_values["robotik_kol"])
                     if arm_status == -1:
@@ -432,14 +431,20 @@ def update_from_joystick(rov_movement):
                     turn_power = joystick_values["turn_itself"] * 100
                     rov_movement.go_xy_and_turn(xy_power, xy_angle, turn_power)
 
-                prev_joystick_values = copy.deepcopy(joystick_values)
-                print(joystick_values)
             else:
-                if rov_movement:
-                    # Z ekseninde hareket - Denge için
-                    z_power = int(joystick_values["z_axes"] * 100)
-                    rov_movement.go_z_bidirectional(z_power)
                 sleep(0.05)
+
+            if rov_movement:
+                # Z ekseninde hareket (Eğer z'de değişme yoksa denge için çalışır)
+                if joystick_values.get("dik_dur"):
+                    target_x = 90
+                elif joystick_values.get("asagi_bak"):
+                    target_x = -30
+                else:
+                    target_x = 0
+                z_power = int(joystick_values["z_axes"] * 30)
+                rov_movement.go_z_bidirectional(z_power, target_x=target_x)
+
         sleep(0.04)
         Joy_obj.clock.tick(50)
 
