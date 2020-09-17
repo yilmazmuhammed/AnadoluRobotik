@@ -1,14 +1,11 @@
 from time import sleep
 
 import pygame
-import os
 import numpy as np
 import math
-from threading import Thread
 
 
-class SharedOutput():
-
+class SharedOutput:
     def __init__(self):
         self.ret_dict = {
             "xy_plane": {
@@ -18,8 +15,8 @@ class SharedOutput():
             "z_axes": 0,  # 5 ve 3 numaralı butonlara basılması durumu
             "turn_itself": 0,
             "robotik_kol": 0,  # joystick çubuğunun kendi eksininde döndürülmesi hareketi
-            "asagi_bak": 0,
-            "dik_dur": 0
+            "tilt_degree": 0,
+            "power_factor": 1
         }
         self.x = 0
         self.y = 0
@@ -32,7 +29,7 @@ class SharedOutput():
         self.ret_dict["z_axes"] = z
 
     def update_turn(self, turn):
-        self.ret_dict["turn_itself"] = turn
+        self.ret_dict["turn_itself"] = round(turn, 2)
 
     def set_x(self, x):
         self.x = x
@@ -53,7 +50,7 @@ class SharedOutput():
         elif x > 0:
             if y > 0:
                 angel = math.atan(y / x)
-            elif (y < 0):
+            elif y < 0:
                 angel = 2 * np.pi + math.atan(y / x)
             else:
                 angel = 0
@@ -84,18 +81,18 @@ class SharedOutput():
 
         if x == 0:
             self.ret_dict["xy_plane"]["angel"] = degree
-            self.ret_dict["xy_plane"]["magnitude"] = abs(y)
+            self.ret_dict["xy_plane"]["magnitude"] = round(abs(y), 2)
         elif math.atan(y / x) < 1:
             self.ret_dict["xy_plane"]["angel"] = degree
-            self.ret_dict["xy_plane"]["magnitude"] = abs(x)
+            self.ret_dict["xy_plane"]["magnitude"] = round(abs(x), 2)
         else:
             self.ret_dict["xy_plane"]["angel"] = degree
-            self.ret_dict["xy_plane"]["magnitude"] = abs(y)
+            self.ret_dict["xy_plane"]["magnitude"] = round(abs(y), 2)
 
 
 class Joystick:
 
-    def __init__(self):
+    def __init__(self, joystick_id=0):
         self.shared_obj = SharedOutput()
         pygame.init()
         self.done = False
@@ -103,29 +100,30 @@ class Joystick:
         pygame.joystick.init()
         # self.button_pressed = 0
         # self.dic_initializer()
-        self.joystick = None
+        self.joystick_id = joystick_id
+        self.joystick = self.joystick = pygame.joystick.Joystick(self.joystick_id)
         self.joystick_count = None
         self.name = None
         self.axes = None
 
     def for_initializer(self):
-        self.joystick = pygame.joystick.Joystick(0)
         self.joystick.init()
 
         self.name = self.joystick.get_name()
         self.axes = self.joystick.get_numaxes()
 
+        # Update joystick values
         self.get_z_values()
-        self.get_look_down()
-        self.get_stand_upright()
+        self.get_z_tilt_degree()
+        self.get_power_factor()
 
     def while_initializer(self):
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                done = True
+                self.done = True
             elif event.type == pygame.JOYBUTTONDOWN:
-                if pygame.joystick.Joystick(0).get_button(0) == 1:
+                if self.joystick.get_button(0) == 1:
                     self.shared_obj.update_kol()
                     # print("Joystick button released.")
             """elif event.type == pygame.JOYBUTTONUP:
@@ -135,25 +133,29 @@ class Joystick:
 
         self.joystick_count = pygame.joystick.get_count()
 
+    def get_power_factor(self):
+        self.shared_obj.ret_dict["power_factor"] = round((-pygame.joystick.Joystick(0).get_axis(3) + 1) / 2, 2)
+
     def get_z_values(self):
         # self.shared_obj.update_z(round(pygame.joystick.Joystick(0).get_axis(3), 2))
-        self.shared_obj.update_z(pygame.joystick.Joystick(0).get_hat(0)[1])
+        # self.shared_obj.update_z(pygame.joystick.Joystick(0).get_hat(0)[1])
+        self.shared_obj.update_z(self.joystick.get_button(7) - self.joystick.get_button(6))
 
-    def get_look_down(self):
-        self.shared_obj.ret_dict["asagi_bak"] = pygame.joystick.Joystick(0).get_button(10)
-
-    def get_stand_upright(self):
-        self.shared_obj.ret_dict["dik_dur"] = pygame.joystick.Joystick(0).get_button(11)
+    def get_z_tilt_degree(self):
+        if self.joystick.get_button(10):
+            self.shared_obj.ret_dict["tilt_degree"] = -30
+        elif self.joystick.get_button(11):
+            self.shared_obj.ret_dict["tilt_degree"] = 90
+        else:
+            self.shared_obj.ret_dict["tilt_degree"] = 0
 
     def joysticks(self):
-        joystick = pygame.joystick.Joystick(0)
-        joystick.init()
+        self.joystick.init()
 
-        name = joystick.get_name()
-        axes = joystick.get_numaxes()
+        axes = self.joystick.get_numaxes()
 
         for i in range(axes):
-            axis = joystick.get_axis(i)
+            axis = self.joystick.get_axis(i)
 
             if i == 0:
                 # if(axis<0):
@@ -188,12 +190,10 @@ class Joystick:
         self.shared_obj.update_xy()
 
     def buttons(self):
-
-        joystick = pygame.joystick.Joystick(0)
-        buttons = joystick.get_numbuttons()
+        buttons = self.joystick.get_numbuttons()
 
         for i in range(buttons):
-            button = joystick.get_button(i)
+            button = self.joystick.get_button(i)
             if button > 0:
                 if i == 0:
                     print("z ekseninde yukarı çıkılıyor")
@@ -205,7 +205,8 @@ class Joystick:
                     # self.ret_dict["z_axes"] = 1
                     self.shared_obj.update_kol()
 
-    def quit(self):
+    @staticmethod
+    def quit():
         pygame.quit()
 
 

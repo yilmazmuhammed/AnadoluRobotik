@@ -1,7 +1,7 @@
 import math
 import time
 from datetime import datetime
-from threading import Thread
+from threading import Thread, Lock
 
 import adafruit_lsm9ds1
 import board
@@ -60,7 +60,7 @@ class XYZ:
         return XYZ(-self.x, -self.y, -self.z)
 
     def __str__(self):
-        return str((self.x, self.y, self.z))
+        return str((round(self.x, 2), round(self.y, 2), round(self.z, 2)))
 
     def __repr__(self):
         return self.x, self.y, self.z
@@ -82,6 +82,7 @@ class Imu:
 
         self._running = False
         self._thread = None
+        self._gyro_lock = Lock()
 
     def calibrate(self, seconds=1):
         self.stop()
@@ -151,9 +152,11 @@ class Imu:
         return XYZ(*self._sensor.magnetic)
 
     def get_instant_gyro(self):
+        with self._gyro_lock:
+            xyz = XYZ(*self._sensor.gyro)
         if self._init_gyro:
-            return XYZ(*self._sensor.gyro) - self._init_gyro
-        return XYZ(*self._sensor.gyro)
+            return xyz - self._init_gyro
+        return xyz
 
     def get_temperature(self):
         return XYZ(*self._sensor.temperature)
@@ -199,6 +202,7 @@ if __name__ == '__main__':
         while True:
             print("Degree:", imu.get_degree())
             print("Direction:", imu.get_direction(absolute=False))
+            print("Gyro:", imu.get_instant_gyro())
             print("Time:", datetime.now() - t)
             print()
             time.sleep(0.1)
