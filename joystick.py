@@ -29,7 +29,10 @@ class SharedOutput:
         self.ret_dict["z_axes"] = z
 
     def update_turn(self, turn):
-        self.ret_dict["turn_itself"] = round(turn, 2)
+        if -0.3 < turn < 0.3:
+            self.ret_dict["turn_itself"] = 0
+        else:
+            self.ret_dict["turn_itself"] = round(turn, 2)
 
     def set_x(self, x):
         self.x = x
