@@ -231,6 +231,11 @@ class RovMovement:
         #     raise Exception("Kp must be bigger than Kd. Kp: %s - Kd: %s" % (kp, kd))
         try:
             x, y, _ = self.imu.get_degree().get()
+            # if abs(tilt_degree) == 90:
+            #     if 45 < y < 90:
+            #         tilt_degree = 90
+            #     elif -90 < y < -45:
+            #         tilt_degree = -90
             y = y - tilt_degree
             comp_sign = +1 if (x < 0 and y < 0) or (x > 0 and y > 0) else -1
             if -1 < x < 1: x = 0
@@ -280,7 +285,8 @@ class RovMovement:
     def go_z_bidirectional(self, power, with_balance=True, tilt_degree=0):
         power_per_motor = int(power / 4)
 
-        lf_p, rf_p, lb_p, rb_p = self._get_z_balance_p(kp=0.35, kd=0.30, tilt_degree=tilt_degree) if with_balance else (0, 0, 0, 0)
+        lf_p, rf_p, lb_p, rb_p = self._get_z_balance_p(kp=0.35, kd=0.30, tilt_degree=tilt_degree) if with_balance else (
+        0, 0, 0, 0)
         current_powers = {
             "z_lf": power_per_motor + lf_p,
             "z_rf": power_per_motor + rf_p,
@@ -303,12 +309,15 @@ class RovMovement:
                            Negative value -> Turn left
         :return:
         """
-        if turn_power:
-            turn_power = turn_power / 4
-            turn_power_per_motor = int(turn_power / 4)
-        else:
-            _, _, z = self.imu.get_instant_gyro().get()
-            turn_power_per_motor = int(z)
+
+        # if turn_power:
+        #     turn_power = turn_power / 4
+        #     turn_power_per_motor = int(turn_power / 4)
+        # else:
+        #     _, _, z = self.imu.get_instant_gyro().get()
+        #     turn_power_per_motor = int(z)
+        turn_power = turn_power / 4
+        turn_power_per_motor = int(turn_power / 4)
 
         go_power_per_motor = int(power / 2)
 
@@ -330,6 +339,26 @@ class RovMovement:
         }
         self._gradual_power_change(current_powers)
         self.motor_prev_powers.update(current_powers)
+        self.go_xyz_with_tilt()
+
+    def go_xyz_with_tilt(self, xy_power, z_power, turn_power, with_balance=True, tilt_degree=0):
+        """
+        :param xy_power: between from -70 to 70
+        :param z_power: between from -70 to 70
+        :param turn_power: Turn power
+                           Positive value -> Turn right
+                           Negative value -> Turn left
+        :param with_balance: Should the balance of the vehicle be achieved with pid control?
+        :param tilt_degree: the inclination the vehicle will make forward
+                            negative value -> leaning forward of the vehicle
+                            positive value -> raising the front of the vehicle
+        :return:
+        """
+        tilt_radian = tilt_degree * math.pi / 180
+        xy_power_ = math.cos(-tilt_radian) * xy_power - math.sin(-tilt_radian) * z_power
+        z_power_ = math.sin(-tilt_radian) * xy_power + math.cos(-tilt_radian) * z_power
+        self.go_xy_and_turn(xy_power_, 0, turn_power)
+        self.go_z_bidirectional(z_power_, with_balance=with_balance, tilt_degree=tilt_degree)
 
     def open_arm(self):
         self.arm.change_angle(100)
