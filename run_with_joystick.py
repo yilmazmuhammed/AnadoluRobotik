@@ -12,7 +12,6 @@ def update_from_joystick(rov_movement):
 
     # Joystick variables are creating
     joystick_values = {}
-    prev_joystick_values = copy.deepcopy(joystick_values)
     Joy_obj = Joystick()
     joystick_values.update(Joy_obj.shared_obj.ret_dict)
     # Joystick variables are created
@@ -25,33 +24,25 @@ def update_from_joystick(rov_movement):
             Joy_obj.joysticks()
             joystick_values = Joy_obj.shared_obj.ret_dict
 
-            pf = joystick_values["power_factor"]
-            # print(joystick_values)
-            if joystick_values != prev_joystick_values:
-                prev_joystick_values = copy.deepcopy(joystick_values)
-                print(joystick_values)
-
-                if rov_movement:
-                    # Robotik kol hareketi
-                    arm_status = int(joystick_values["robotik_kol"])
-                    if arm_status == -1:
-                        rov_movement.toggle_arm(False)
-                    elif arm_status == 1:
-                        rov_movement.toggle_arm(True)
-
-                    # XY düzleminde hareket
-                    xy_power = joystick_values["xy_plane"]["magnitude"] * pf * 100
-                    xy_angle = joystick_values["xy_plane"]["angel"]
-                    turn_power = joystick_values["turn_itself"] * pf * 100
-                    rov_movement.go_xy_and_turn(xy_power, xy_angle, turn_power)
-            else:
-                sleep(0.05)
-
             if rov_movement:
-                # Z ekseninde hareket (Eğer z'de değişme yoksa denge için çalışır)
+                # Robotik kol hareketi
+                arm_status = joystick_values["robotik_kol"]
+                arm_status = True if arm_status == 1 else (False if arm_status == -1 else None)
+                rov_movement.toggle_arm(arm_status)
+
+                # XYZ hareketi
+                pf = joystick_values["power_factor"]
+                zpf = joystick_values["zpf"]
+                xy_power = joystick_values["xy_plane"]["magnitude"] * pf * 100
+                z_power = joystick_values["z_axes"] * pf * zpf * 60
+                turn_power = joystick_values["turn_itself"] * pf * 100
                 tilt_degree = joystick_values["tilt_degree"]
-                z_power = joystick_values["z_axes"] * pf * 60
-                rov_movement.go_z_bidirectional(z_power, tilt_degree=tilt_degree)
+                if tilt_degree:
+                    rov_movement.go_xyz_with_tilt(xy_power, z_power, turn_power, tilt_degree=tilt_degree)
+                else:
+                    xy_angle = joystick_values["xy_plane"]["angel"]
+                    rov_movement.go_xy_and_turn(xy_power, xy_angle, turn_power)
+                    rov_movement.go_z_bidirectional(z_power)
 
         sleep(0.04)
         Joy_obj.clock.tick(50)

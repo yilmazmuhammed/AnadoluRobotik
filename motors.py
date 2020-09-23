@@ -339,7 +339,6 @@ class RovMovement:
         }
         self._gradual_power_change(current_powers)
         self.motor_prev_powers.update(current_powers)
-        self.go_xyz_with_tilt()
 
     def go_xyz_with_tilt(self, xy_power, z_power, turn_power, with_balance=True, tilt_degree=0):
         """

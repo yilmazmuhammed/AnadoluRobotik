@@ -71,7 +71,7 @@ class SampleApp(tk.Tk):
         """Show a frame for the given page name"""
         frame = self.frames[page_name]
         if mission == 1:
-            self.manuel_thread = Thread(target=update_from_joystick, args=(self.rov_movement))
+            self.manuel_thread = Thread(target=update_from_joystick, args=(self.rov_movement,))
             self.frames["ObservationPage"].baslat()
             self.manuel_thread.start()
             pass
@@ -284,20 +284,20 @@ class ObservationPage(tk.Frame):
 
         lidars_frame.grid(row=0, column=2, padx=10)
 
-        # KAMERALAR
-        cameras_frame = tk.Frame(self, bg='skyblue')
-        tk.Label(cameras_frame, text="Ön Kamera", width=40, bg='skyblue').grid(row=0, column=0, padx=10, pady=5)
-        self.left_camera_label = tk.Label(cameras_frame, text=" ")
-        self.left_camera_label.grid(row=1, column=0, padx=10)
-        tk.Label(cameras_frame, text="Alt Kamera", width=40, bg='skyblue').grid(row=0, column=1, padx=10, pady=5)
-        self.right_camera_label = tk.Label(cameras_frame, text=" ")
-        self.right_camera_label.grid(row=1, column=1, padx=10)
-        cameras_frame.grid(row=1, column=0, columnspan=3, padx=10, pady=(70, 10))
-
-        self.left_camera = CSI_Camera(output_file="left.avi")
-        self.right_camera = CSI_Camera(output_file="right.avi")
-        self.fps = FPS()
-        self.update_camera_thread()
+        # # KAMERALAR
+        # cameras_frame = tk.Frame(self, bg='skyblue')
+        # tk.Label(cameras_frame, text="Ön Kamera", width=40, bg='skyblue').grid(row=0, column=0, padx=10, pady=5)
+        # self.left_camera_label = tk.Label(cameras_frame, text=" ")
+        # self.left_camera_label.grid(row=1, column=0, padx=10)
+        # tk.Label(cameras_frame, text="Alt Kamera", width=40, bg='skyblue').grid(row=0, column=1, padx=10, pady=5)
+        # self.right_camera_label = tk.Label(cameras_frame, text=" ")
+        # self.right_camera_label.grid(row=1, column=1, padx=10)
+        # cameras_frame.grid(row=1, column=0, columnspan=3, padx=10, pady=(70, 10))
+        #
+        # self.left_camera = CSI_Camera(output_file="left.avi")
+        # self.right_camera = CSI_Camera(output_file="right.avi")
+        # self.fps = FPS()
+        # self.update_camera_thread()
 
         ports = {
             # "front": "/dev/ttyUSB0",
@@ -334,11 +334,10 @@ class ObservationPage(tk.Frame):
 
     def update_imu_values(self):
         x, y, _ = self.imu.get_degree().get()
-        self.imu_labels['x'] = x
-        self.imu_labels['y'] = y
+        self.imu_labels['x']["text"] = x
+        self.imu_labels['y']["text"] = y
         _, _, z = self.imu.get_direction(absolute=False).get()
-        self.imu_labels['z'] = z
-        print("imu:", x, y, z)
+        self.imu_labels['z']["text"] = z
         self.after(200, self.update_imu_values)
 
     def update_cameras(self):
@@ -399,7 +398,6 @@ def update_from_joystick(rov_movement):
 
     # Joystick variables are creating
     joystick_values = {}
-    prev_joystick_values = copy.deepcopy(joystick_values)
     Joy_obj = Joystick()
     joystick_values.update(Joy_obj.shared_obj.ret_dict)
     # Joystick variables are created
@@ -412,38 +410,25 @@ def update_from_joystick(rov_movement):
             Joy_obj.joysticks()
             joystick_values = Joy_obj.shared_obj.ret_dict
 
-            # print(joystick_values)
-            if joystick_values != prev_joystick_values:
-                prev_joystick_values = copy.deepcopy(joystick_values)
-                print(joystick_values)
-
-                if rov_movement:
-                    # Robotik kol hareketi
-                    arm_status = int(joystick_values["robotik_kol"])
-                    if arm_status == -1:
-                        rov_movement.toggle_arm(False)
-                    elif arm_status == 1:
-                        rov_movement.toggle_arm(True)
-
-                    # XY düzleminde hareket
-                    xy_power = joystick_values["xy_plane"]["magnitude"] * 100
-                    xy_angle = joystick_values["xy_plane"]["angel"]
-                    turn_power = joystick_values["turn_itself"] * 100
-                    rov_movement.go_xy_and_turn(xy_power, xy_angle, turn_power)
-
-            else:
-                sleep(0.05)
-
             if rov_movement:
-                # Z ekseninde hareket (Eğer z'de değişme yoksa denge için çalışır)
-                if joystick_values.get("dik_dur"):
-                    target_x = 90
-                elif joystick_values.get("asagi_bak"):
-                    target_x = -30
+                # Robotik kol hareketi
+                arm_status = joystick_values["robotik_kol"]
+                arm_status = True if arm_status == 1 else (False if arm_status == -1 else None)
+                rov_movement.toggle_arm(arm_status)
+
+                # XYZ hareketi
+                pf = joystick_values["power_factor"]
+                zpf = joystick_values["zpf"]
+                xy_power = joystick_values["xy_plane"]["magnitude"] * pf * 100
+                z_power = joystick_values["z_axes"] * pf * zpf * 60
+                turn_power = joystick_values["turn_itself"] * pf * 100
+                tilt_degree = joystick_values["tilt_degree"]
+                if tilt_degree:
+                    rov_movement.go_xyz_with_tilt(xy_power, z_power, turn_power, tilt_degree=tilt_degree)
                 else:
-                    target_x = 0
-                z_power = int(joystick_values["z_axes"] * 30)
-                rov_movement.go_z_bidirectional(z_power, target_x=target_x)
+                    xy_angle = joystick_values["xy_plane"]["angel"]
+                    rov_movement.go_xy_and_turn(xy_power, xy_angle, turn_power)
+                    rov_movement.go_z_bidirectional(z_power)
 
         sleep(0.04)
         Joy_obj.clock.tick(50)

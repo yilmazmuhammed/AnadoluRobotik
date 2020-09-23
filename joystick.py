@@ -16,7 +16,8 @@ class SharedOutput:
             "turn_itself": 0,
             "robotik_kol": 0,  # joystick çubuğunun kendi eksininde döndürülmesi hareketi
             "tilt_degree": 0,
-            "power_factor": 1
+            "power_factor": 1,
+            "spf": 1
         }
         self.x = 0
         self.y = 0
@@ -129,6 +130,11 @@ class Joystick:
                 if self.joystick.get_button(0) == 1:
                     self.shared_obj.update_kol()
                     # print("Joystick button released.")
+                elif event.joy == self.joystick_id and event.button == 9:
+                    self.shared_obj.ret_dict["spf"] += 1
+                elif event.joy == self.joystick_id and event.button == 8:
+                    if self.shared_obj.ret_dict["spf"] > 1:
+                        self.shared_obj.ret_dict["spf"] -= 1
             """elif event.type == pygame.JOYBUTTONUP:
                 #if pygame.joystick.Joystick(self.i).get_button(0)==1:
                 #self.button_pressed = 0
